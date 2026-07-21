@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase'
 import { todayKey } from '../lib/dates'
-import type { AppState, Routine, Scan, SessionRecord } from '../lib/types'
+import type { AppState, DayFlags, Measurement, Routine, SessionRecord } from '../lib/types'
 
 // Cloud sync is coarse by design: the whole (tiny) dataset is pulled on sign-in
 // and pushed debounced on change. localStorage remains the offline cache, so the
@@ -8,12 +8,13 @@ import type { AppState, Routine, Scan, SessionRecord } from '../lib/types'
 
 export interface CloudPatch {
   routines: Routine[]
-  scans: Scan[]
+  measurements: Measurement[]
   sessions: SessionRecord[]
+  dayLog: Record<string, DayFlags>
+  profileName: string
   weeklyGoal: number
   waterSize: number
   waterGoal: number
-  streak: number
   obH: string
   water: number
   trainedToday: boolean
@@ -22,13 +23,13 @@ export interface CloudPatch {
 /** Load everything for the signed-in user. Returns null if the account has no data yet. */
 export async function pullAll(userId: string): Promise<Partial<CloudPatch> | null> {
   if (!supabase) return null
-  const [profileQ, routinesQ, exsQ, scansQ, sessionsQ, dayQ] = await Promise.all([
+  const [profileQ, routinesQ, exsQ, measQ, sessionsQ, daysQ] = await Promise.all([
     supabase.from('profiles').select('*').eq('user_id', userId).maybeSingle(),
     supabase.from('routines').select('*').eq('user_id', userId).order('position'),
     supabase.from('routine_exercises').select('*').eq('user_id', userId).order('position'),
-    supabase.from('body_scans').select('*').eq('user_id', userId).order('created_at'),
+    supabase.from('measurements').select('*').eq('user_id', userId).order('t'),
     supabase.from('workout_sessions').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(8),
-    supabase.from('daily_logs').select('*').eq('user_id', userId).eq('day', todayKey()).maybeSingle(),
+    supabase.from('daily_logs').select('*').eq('user_id', userId),
   ])
   const profile = profileQ.data
   if (!profile) return null
@@ -47,39 +48,41 @@ export async function pullAll(userId: string): Promise<Partial<CloudPatch> | nul
   const routines: Routine[] = (routinesQ.data || []).map(r => ({
     id: r.id, name: r.name, mus: r.mus, focus: r.focus, days: r.days || [], exs: exsByRoutine[r.id] || [],
   }))
-  const scans: Scan[] = (scansQ.data || []).map(s => ({
-    d: s.label, w: Number(s.w), fat: Number(s.fat), mus: Number(s.mus),
-    wat: Number(s.wat), visc: Number(s.visc), bmr: Number(s.bmr), ffm: Number(s.ffm),
+  const measurements: Measurement[] = (measQ.data || []).map(m => ({
+    k: m.k, v: Number(m.v), t: new Date(m.t).getTime(),
   }))
   const sessions: SessionRecord[] = (sessionsQ.data || []).map(s => ({
     dNum: s.d_num, dMon: s.d_mon, name: s.name, mins: s.mins, sets: s.sets, pr: s.pr,
   }))
+  const dayLog: Record<string, DayFlags> = {}
+  for (const d of daysQ.data || []) dayLog[d.day] = { t: !!d.trained, h: !!d.water_goal_met }
 
+  const today = dayLog[todayKey()]
   return {
     routines,
-    scans: scans.length ? scans : undefined,
+    measurements,
     sessions,
+    dayLog,
+    profileName: profile.name || '',
     weeklyGoal: profile.weekly_goal,
     waterSize: profile.water_size,
     waterGoal: profile.water_goal,
-    streak: profile.streak,
     obH: profile.height_cm == null ? '' : String(profile.height_cm),
-    water: dayQ.data?.water ?? 0,
-    trainedToday: dayQ.data?.trained ?? false,
+    water: (daysQ.data || []).find(d => d.day === todayKey())?.water ?? 0,
+    trainedToday: today?.t ?? false,
   }
 }
 
 /** Replace the user's cloud copy with the current local state. */
-export async function pushAll(userId: string, s: AppState, name: string): Promise<void> {
+export async function pushAll(userId: string, s: AppState): Promise<void> {
   if (!supabase) return
   await supabase.from('profiles').upsert({
     user_id: userId,
-    name,
+    name: s.profileName,
     height_cm: parseFloat(s.obH) > 0 ? parseFloat(s.obH) : null,
     weekly_goal: s.weeklyGoal,
     water_size: s.waterSize,
     water_goal: s.waterGoal,
-    streak: s.streak,
     theme: s.themeSel,
     updated_at: new Date().toISOString(),
   })
@@ -97,11 +100,10 @@ export async function pushAll(userId: string, s: AppState, name: string): Promis
     if (exRows.length) await supabase.from('routine_exercises').insert(exRows)
   }
 
-  await supabase.from('body_scans').delete().eq('user_id', userId)
-  if (s.scans.length) {
-    await supabase.from('body_scans').insert(s.scans.map(sc => ({
-      user_id: userId, label: sc.d, w: sc.w, fat: sc.fat, mus: sc.mus,
-      wat: sc.wat, visc: sc.visc, bmr: sc.bmr, ffm: sc.ffm,
+  await supabase.from('measurements').delete().eq('user_id', userId)
+  if (s.measurements.length) {
+    await supabase.from('measurements').insert(s.measurements.map(m => ({
+      user_id: userId, k: m.k, v: m.v, t: new Date(m.t).toISOString(),
     })))
   }
 
@@ -113,7 +115,8 @@ export async function pushAll(userId: string, s: AppState, name: string): Promis
     })))
   }
 
-  await supabase.from('daily_logs').upsert({
-    user_id: userId, day: todayKey(), water: s.water, trained: s.trainedToday,
-  })
+  const days = Object.entries({ ...s.dayLog, [todayKey()]: { t: s.trainedToday, h: s.water >= s.waterGoal } })
+  await supabase.from('daily_logs').upsert(days.map(([day, f]) => ({
+    user_id: userId, day, water: day === todayKey() ? s.water : 0, trained: f.t, water_goal_met: f.h,
+  })))
 }

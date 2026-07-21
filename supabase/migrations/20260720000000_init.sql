@@ -10,7 +10,6 @@ create table if not exists public.profiles (
   weekly_goal int  not null default 4,
   water_size  int  not null default 250,
   water_goal  int  not null default 8,
-  streak      int  not null default 0,
   theme       text not null default 'dark',
   updated_at  timestamptz not null default now()
 );
@@ -54,26 +53,22 @@ create table if not exists public.workout_sessions (
   created_at timestamptz not null default now()
 );
 
-create table if not exists public.body_scans (
-  id         bigint generated always as identity primary key,
-  user_id    uuid not null references auth.users (id) on delete cascade,
-  label      text not null,
-  w          numeric not null,
-  fat        numeric not null,
-  mus        numeric not null,
-  wat        numeric not null,
-  visc       numeric not null,
-  bmr        numeric not null,
-  ffm        numeric not null,
-  created_at timestamptz not null default now()
+-- individual body measurement entries (k: w/h/fat/mus/wat/visc/bmr/ffm…)
+create table if not exists public.measurements (
+  id      bigint generated always as identity primary key,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  k       text not null,
+  v       numeric not null,
+  t       timestamptz not null default now()
 );
 
 -- ── daily log (hydration + trained flag, one row per day) ───────
 create table if not exists public.daily_logs (
-  user_id uuid not null references auth.users (id) on delete cascade,
-  day     date not null,
-  water   int  not null default 0,
-  trained boolean not null default false,
+  user_id        uuid not null references auth.users (id) on delete cascade,
+  day            date not null,
+  water          int  not null default 0,
+  trained        boolean not null default false,
+  water_goal_met boolean not null default false,
   primary key (user_id, day)
 );
 
@@ -81,20 +76,20 @@ create table if not exists public.daily_logs (
 create index if not exists routines_user_idx on public.routines (user_id);
 create index if not exists routine_exercises_user_idx on public.routine_exercises (user_id);
 create index if not exists workout_sessions_user_idx on public.workout_sessions (user_id, created_at desc);
-create index if not exists body_scans_user_idx on public.body_scans (user_id, created_at);
+create index if not exists measurements_user_idx on public.measurements (user_id, k, t);
 
 -- ── row level security ──────────────────────────────────────────
 alter table public.profiles          enable row level security;
 alter table public.routines          enable row level security;
 alter table public.routine_exercises enable row level security;
 alter table public.workout_sessions  enable row level security;
-alter table public.body_scans        enable row level security;
+alter table public.measurements      enable row level security;
 alter table public.daily_logs        enable row level security;
 
 do $$
 declare t text;
 begin
-  foreach t in array array['profiles','routines','routine_exercises','workout_sessions','body_scans','daily_logs'] loop
+  foreach t in array array['profiles','routines','routine_exercises','workout_sessions','measurements','daily_logs'] loop
     execute format('create policy "own rows select" on public.%I for select using (auth.uid() = user_id)', t);
     execute format('create policy "own rows insert" on public.%I for insert with check (auth.uid() = user_id)', t);
     execute format('create policy "own rows update" on public.%I for update using (auth.uid() = user_id) with check (auth.uid() = user_id)', t);

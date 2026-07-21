@@ -2,6 +2,7 @@ import { useStore } from '../store/store'
 import { useTheme } from '../lib/useTheme'
 import { tint } from '../lib/ui'
 import { dateKey, MONF } from '../lib/dates'
+import { liveLog } from '../lib/consistency'
 import { SheetShell } from '../components/SheetShell'
 
 const DOWS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
@@ -14,10 +15,9 @@ export function CalendarSheet() {
   const { C, T, tintFg } = useTheme()
   const label = { fontSize: 9.5, letterSpacing: 1.6, fontWeight: 700, color: tint(42) } as const
 
-  const log = store.getLog()
+  const log = liveLog(s)
   const today = new Date(); today.setHours(0, 0, 0, 0)
   const tKey = dateKey(today)
-  const hydTodayMet = s.water >= s.waterGoal
   const vm = new Date(today.getFullYear(), today.getMonth() + s.calOff, 1)
   const dim = new Date(vm.getFullYear(), vm.getMonth() + 1, 0).getDate()
   const lead = vm.getDay()
@@ -29,7 +29,7 @@ export function CalendarSheet() {
     const k2 = dateKey(dd)
     const isToday = k2 === tKey
     const future = dd.getTime() > today.getTime()
-    const f = future ? { t: false, h: false } : (isToday ? { t: s.trainedToday, h: hydTodayMet } : (log[k2] || { t: false, h: false }))
+    const f = future ? { t: false, h: false } : (log[k2] || { t: false, h: false })
     cells.push({
       n: '' + d2,
       op: future ? 0.35 : 1,
@@ -87,7 +87,7 @@ export function CalendarSheet() {
           )
         })}
       </div>
-      <div style={{ marginTop: 8, fontSize: 11, color: tint(40) }}>A week counts as complete when you train at least this many days — worth 150 XP each.</div>
+      <div style={{ marginTop: 8, fontSize: 11, color: tint(40) }}>A week counts as complete when you train at least this many days.</div>
     </SheetShell>
   )
 }

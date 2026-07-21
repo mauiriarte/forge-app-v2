@@ -2,24 +2,28 @@ import { useStore } from '../store/store'
 import { useTheme } from '../lib/useTheme'
 import { tint, overline, screenPane } from '../lib/ui'
 import { BackChevron } from '../components/icons'
-import { USER_NAME } from '../config'
+import { latestOf } from '../lib/bodyMetrics'
+import { displayInitials, displayName } from '../lib/identity'
 import type { ThemeSel } from '../lib/types'
 
 export function Profile({ z, anim }: { z: number; anim: string }) {
   const { store, state: s } = useStore()
   const { T, themeIsDark, tintFg } = useTheme()
 
-  const initials = USER_NAME.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+  const name = displayName(s) || 'Athlete'
+  const initials = displayInitials(s)
   const themeSel = s.themeSel
   const themeNote = themeSel === 'system'
     ? 'Following your device — ' + (themeIsDark ? 'dark' : 'light') + ' right now'
     : (themeIsDark ? 'Charcoal — the forge at night' : 'Warm paper — easy in daylight')
 
+  const wNow = latestOf(s.measurements, 'w')
+  const hNow = latestOf(s.measurements, 'h')
   const rows = [
-    { label: 'Weight', val: s.scans[s.scans.length - 1].w.toFixed(1) + ' kg' },
-    { label: 'Height', val: (s.obH || '184') + ' cm' },
+    { label: 'Weight', val: wNow ? wNow.v.toFixed(1) + ' kg' : '—' },
+    { label: 'Height', val: hNow ? Math.round(hNow.v) + ' cm' : (s.obH ? s.obH + ' cm' : '—') },
     { label: 'Weekly goal', val: s.weeklyGoal + '× per week' },
-    { label: 'Email', val: s.obEmail || 'mauricio@gmail.com' },
+    { label: 'Email', val: s.obEmail || '—' },
   ]
 
   return (
@@ -33,7 +37,7 @@ export function Profile({ z, anim }: { z: number; anim: string }) {
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 22 }}>
         <div style={{ width: 86, height: 86, borderRadius: '50%', background: 'var(--color-surface-2)', border: `1px solid ${tint(12)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 700 }}>{initials}</div>
-        <div style={{ fontSize: 25, fontWeight: 700, letterSpacing: -0.8, marginTop: 14 }}>{USER_NAME}</div>
+        <div style={{ fontSize: 25, fontWeight: 700, letterSpacing: -0.8, marginTop: 14 }}>{name}</div>
       </div>
 
       <div style={{ marginTop: 26, ...overline() }}>APPEARANCE</div>

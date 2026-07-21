@@ -2,6 +2,7 @@ import { useStore } from '../store/store'
 import { tint, inputStyle } from '../lib/ui'
 import { MO3 } from '../lib/dates'
 import { SheetShell } from '../components/SheetShell'
+import { ImageSlot } from '../components/ImageSlot'
 import type { ScanVals } from '../lib/types'
 
 const FIELDS: { k: keyof ScanVals; label: string }[] = [
@@ -26,7 +27,10 @@ export function ScanSheet() {
         <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: -0.4 }}>New body scan</div>
         <div style={{ fontSize: 10, letterSpacing: 1, fontWeight: 700, color: tint(42) }}>{MO3[now.getMonth()]} {now.getDate()} · {now.getFullYear()}</div>
       </div>
-      <div style={{ fontSize: 12.5, color: tint(45), marginTop: 3 }}>Prefilled with your last scan — adjust and log.</div>
+      <div style={{ fontSize: 12.5, color: tint(45), marginTop: 3 }}>Drop your InBody-style PDF or photo, then copy in the values — only what you fill gets logged.</div>
+      <div style={{ marginTop: 12, height: 74, borderRadius: 16, overflow: 'hidden', background: 'var(--color-bg)', border: `1.5px dashed ${tint(16)}`, boxSizing: 'border-box' }}>
+        <ImageSlot id="fg-scan-doc" placeholder="Drop the scan PDF / photo here (optional)" />
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 9, marginTop: 14 }}>
         {FIELDS.map(f => (
           <div key={f.k}>

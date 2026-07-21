@@ -3,18 +3,20 @@ import { useTheme } from '../lib/useTheme'
 import { tint, mix, overline, screenPane } from '../lib/ui'
 import { DAYFULL, MO3, pad } from '../lib/dates'
 import { Check, Chevron, Dots, Play } from '../components/icons'
-import { USER_NAME } from '../config'
+import { computeConsistency } from '../lib/consistency'
+import { displayInitials, displayName } from '../lib/identity'
 
 export function Home({ z, anim }: { z: number; anim: string }) {
   const { store, state: s } = useStore()
   const { C, T, tintFg } = useTheme()
 
-  const name = USER_NAME
-  const firstName = name.split(' ')[0]
-  const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+  const firstName = displayName(s).split(' ')[0]
+  const initials = displayInitials(s)
+  const { streak } = computeConsistency(s)
   const now = new Date()
   const hr = now.getHours()
-  const greeting = (hr < 12 ? 'Morning, ' : hr < 18 ? 'Afternoon, ' : 'Evening, ') + firstName
+  const base = hr < 12 ? 'Morning' : hr < 18 ? 'Afternoon' : 'Evening'
+  const greeting = firstName ? base + ', ' + firstName : base
   const dateLine = DAYFULL[now.getDay()].toUpperCase() + ' · ' + MO3[now.getMonth()] + ' ' + now.getDate()
 
   const today = store.todayRoutine()
@@ -41,8 +43,8 @@ export function Home({ z, anim }: { z: number; anim: string }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'var(--color-surface-2)', border: `1px solid ${tint(10)}`, borderRadius: 999, padding: '9px 13px' }}>
           <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-accent)', animation: 'fgPulse 2.4s ease-in-out infinite' }} />
-          <span style={{ fontWeight: 700, fontSize: 15 }}>{s.streak}</span>
-          <span style={{ fontSize: 9, letterSpacing: 1, color: tint(45), fontWeight: 600 }}>DAYS</span>
+          <span style={{ fontWeight: 700, fontSize: 15 }}>{streak}</span>
+          <span style={{ fontSize: 9, letterSpacing: 1, color: tint(45), fontWeight: 600 }}>{streak === 1 ? 'DAY' : 'DAYS'}</span>
         </div>
       </div>
 

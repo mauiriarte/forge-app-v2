@@ -1,12 +1,11 @@
 import React, { createContext, useContext } from 'react'
 import type { ReactNode } from 'react'
 import { LIB, FOCUS, libOf } from '../lib/library'
-import { dateKey, todayKey, MO3 } from '../lib/dates'
-import type { AppState, Routine, Screen, ScanVals, SessionRecord, ThemeSel } from '../lib/types'
+import { todayKey, MO3 } from '../lib/dates'
+import type { AppState, Measurement, Routine, Scan, Screen, ScanVals, SessionRecord, ThemeSel, Timeline } from '../lib/types'
 import { DEFAULT_THEME } from '../config'
 import { supabase } from '../lib/supabase'
 import { pullAll, pushAll } from './sync'
-import { USER_NAME } from '../config'
 import { HEVY_ROUTINES } from '../lib/hevyRoutines'
 
 const STORAGE_KEY = 'forge-v2'
@@ -15,10 +14,10 @@ const STORAGE_KEY = 'forge-v2'
 // bookkeeping) is transient by design. The active session persists so an
 // accidental reload mid-workout doesn't lose logged sets.
 const PERSIST_KEYS = [
-  'themeSel', 'routines', 'sessions', 'scans', 'streak',
+  'themeSel', 'routines', 'sessions', 'measurements', 'dayLog', 'profileName',
   'water', 'waterSize', 'waterGoal', 'weeklyGoal', 'trainedToday', 'lastSessMins',
-  'obDone', 'obEmail', 'obW', 'obH', 'obGoal',
-  'bodyMetric',
+  'obDone', 'obEmail', 'obName', 'obW', 'obH', 'obGoal',
+  'bodyMetric', 'timeline',
   'sessOn', 'sessRid', 'sessSets', 'sessW', 'sessElapsed', 'sessOrder', 'restEnd', 'restTotal',
 ] as const
 
@@ -26,6 +25,32 @@ const PERSIST_KEYS = [
 // hydrate() can recognize installs still carrying them and migrate to the
 // real Hevy program.
 const DEMO_ROUTINE_IDS = ['full', 'push', 'pull', 'legs']
+const HEVY_ROUTINE_IDS = ['upper1', 'lower1', 'upper2', 'lower2']
+
+// This account's email — installs signed in with it (or legacy pre-auth
+// installs with no email) keep the seeded program + converted scan history
+// and the owner name; every other install gets the demo data purged.
+const OWNER_EMAIL = 'miriarteh@gmail.com'
+const OWNER_NAME = 'Mauricio Iriarte'
+
+// Exact demo records (from the design prototype) — stripped from non-owner installs.
+const DEMO_SESSION_KEYS = new Set(['10|JUL|Pull Day', '9|JUL|Push Day', '8|JUL|Leg Day', '5|JUL|Full Body'])
+const MON_IDX: Record<string, number> = { JAN: 0, FEB: 1, MAR: 2, APR: 3, MAY: 4, JUN: 5, JUL: 6, AUG: 7, SEP: 8, OCT: 9, NOV: 10, DEC: 11 }
+
+/** Convert legacy full-scan rows (label 'MAR 12', 2026) to measurement entries. */
+function scansToMeasurements(scans: Scan[], heightCm: number | null): Measurement[] {
+  const out: Measurement[] = []
+  for (const sc of scans) {
+    const [mon, day] = sc.d.split(' ')
+    const t = new Date(2026, MON_IDX[mon] ?? 0, parseInt(day, 10) || 1, 12).getTime()
+    for (const k of ['w', 'fat', 'mus', 'wat', 'visc', 'bmr', 'ffm'] as const) {
+      const v = sc[k]
+      if (typeof v === 'number' && !isNaN(v)) out.push({ k, v, t })
+    }
+  }
+  if (heightCm && out.length) out.push({ k: 'h', v: heightCm, t: out[0].t })
+  return out
+}
 
 const initialState = (): AppState => ({
   themeSel: DEFAULT_THEME as ThemeSel, sysDark: true,
@@ -34,34 +59,26 @@ const initialState = (): AppState => ({
   exOpen: null, exFrom: null,
   sessOn: false, sessRid: null, sessSets: {}, sessW: {}, sessElapsed: 0, sessDoneOpen: false, sessOrder: [],
   restEnd: 0, restTotal: 90, restTick: 0, lastSessMins: 0,
-  // New accounts start with no routines — the create-your-first-routine
-  // empty states on Home/Train take over.
+  // New accounts start clean: no routines (create-first-routine empty state),
+  // no measurements beyond what onboarding captures, no history.
   routines: [],
-  sessions: [
-    { dNum: 10, dMon: 'JUL', name: 'Pull Day', mins: 52, sets: 17, pr: 'Lat pulldown' },
-    { dNum: 9, dMon: 'JUL', name: 'Push Day', mins: 48, sets: 17, pr: null },
-    { dNum: 8, dMon: 'JUL', name: 'Leg Day', mins: 61, sets: 18, pr: 'Squats' },
-    { dNum: 5, dMon: 'JUL', name: 'Full Body', mins: 55, sets: 18, pr: null },
-  ],
-  scans: [
-    { d: 'MAR 12', w: 99.1, fat: 29.4, mus: 37.9, wat: 45.9, visc: 13, bmr: 2011, ffm: 62.9 },
-    { d: 'APR 16', w: 97.4, fat: 28.2, mus: 38.2, wat: 46.3, visc: 12, bmr: 2034, ffm: 63.4 },
-    { d: 'MAY 21', w: 96.3, fat: 27.5, mus: 38.5, wat: 46.7, visc: 12, bmr: 2056, ffm: 63.8 },
-    { d: 'JUN 24', w: 95.2, fat: 26.66, mus: 38.82, wat: 47.04, visc: 11, bmr: 2078, ffm: 64.26 },
-  ],
-  streak: 12,
-  obDone: false, obLoggedOut: false, obStep: 0, obMode: 'signup', obEmail: '', obPass: '', obW: '', obH: '', obGoal: 4,
+  sessions: [],
+  measurements: [],
+  dayLog: {},
+  profileName: '',
+  obDone: false, obLoggedOut: false, obStep: 0, obMode: 'signup', obEmail: '', obPass: '', obName: '', obW: '', obH: '', obGoal: 4,
   nrOpen: false, nrClosing: false, nrName: '', nrMus: 'Push', nrDays: [],
   srUid: null, srClosing: false, srSets: 3, srReps: '10',
   reOpen: false, reClosing: false, reName: '', reDays: [], reConfirm: false,
   swId: null, swDx: 0, swDragging: false, swOpen: null,
   leaving: {},
-  water: 5, waterSize: 250, waterGoal: 8,
+  water: 0, waterSize: 250, waterGoal: 8,
   hydraOpen: false, hydraClosing: false,
   exSheet: null, exSheetClosing: false,
   weeklyGoal: 4, calOpen: false, calClosing: false, calOff: 0, trainedToday: false,
-  bodyMetric: 'w', scanOpen: false, scanClosing: false,
+  bodyMetric: 'w', timeline: 'y' as Timeline, scanOpen: false, scanClosing: false,
   scanVals: { w: '', fat: '', mus: '', wat: '', visc: '', bmr: '', ffm: '' },
+  msOpen: false, msClosing: false, msKey: null, msVal: '',
   toast: null, toastLeaving: false,
 })
 
@@ -86,10 +103,34 @@ function hydrate(): AppState {
       base.sessOrder = []
       base.restEnd = 0
     }
-    // One-time migration: installs still carrying the design-prototype demo
-    // routines get the real Hevy upper/lower program instead.
-    if (base.routines.length && base.routines.every(r => DEMO_ROUTINE_IDS.includes(r.id))) {
-      base.routines = HEVY_ROUTINES
+    // ── one-time migrations ──────────────────────────────────────
+    const email = (base.obEmail || '').trim().toLowerCase()
+    const isOwner = email === '' || email === OWNER_EMAIL
+    const legacyScans = (saved as { scans?: Scan[] }).scans
+
+    if (isOwner) {
+      // Owner installs: demo routines → Hevy program; legacy scan history
+      // converts to measurement entries; owner name fills in.
+      if (base.routines.length && base.routines.every(r => DEMO_ROUTINE_IDS.includes(r.id))) {
+        base.routines = HEVY_ROUTINES
+      }
+      if (!base.measurements.length && legacyScans?.length) {
+        const h = parseFloat(base.obH) > 0 ? parseFloat(base.obH) : 184
+        base.measurements = scansToMeasurements(legacyScans, h)
+      }
+      if (base.obDone && !base.profileName) base.profileName = OWNER_NAME
+    } else {
+      // Any other install: strip everything that was seeded demo/owner data.
+      base.routines = base.routines.filter(r => !DEMO_ROUTINE_IDS.includes(r.id) && !HEVY_ROUTINE_IDS.includes(r.id))
+      base.sessions = base.sessions.filter(x => !DEMO_SESSION_KEYS.has(x.dNum + '|' + x.dMon + '|' + x.name))
+      if (!base.measurements.length) {
+        // Their own onboarding numbers become their first entries.
+        const now = Date.now()
+        const w = parseFloat(base.obW), h = parseFloat(base.obH)
+        if (w > 0) base.measurements.push({ k: 'w', v: w, t: now })
+        if (h > 0) base.measurements.push({ k: 'h', v: h, t: now })
+      }
+      if (!base.profileName && base.obName) base.profileName = base.obName.trim()
     }
     // Drop an active session whose routine no longer exists.
     if (base.sessOn && !base.routines.some(r => r.id === base.sessRid)) {
@@ -133,7 +174,7 @@ export class Store extends React.Component<{ children: ReactNode }, AppState> {
   private mqFn: ((e: MediaQueryListEvent) => void) | undefined
   private sw: SwipeTrack | null = null
   private swSuppress = false
-  private logCache: Record<string, { t: boolean; h: boolean }> | null = null
+  private mst: ReturnType<typeof setTimeout> | undefined
   private persistT: ReturnType<typeof setTimeout> | undefined
   private userId: string | null = null
   private pushT: ReturnType<typeof setTimeout> | undefined
@@ -408,11 +449,23 @@ export class Store extends React.Component<{ children: ReactNode }, AppState> {
     this.setState(s => ({ waterGoal: g, water: Math.min(s.water, g) }))
   }
 
-  // ── scans ──────────────────────────────────────────────────────
+  // ── measurements ───────────────────────────────────────────────
+  private latestVal(k: string): number | null {
+    let best: Measurement | null = null
+    for (const e of this.state.measurements) if (e.k === k && (!best || e.t > best.t)) best = e
+    return best ? best.v : null
+  }
+
+  addMeasurements(entries: { k: string; v: number }[]) {
+    if (!entries.length) return
+    const t = Date.now()
+    this.setState(s => ({ measurements: s.measurements.concat(entries.map(e => ({ ...e, t }))) }))
+  }
+
   openScan() {
     clearTimeout(this.sst)
-    const last = this.state.scans[this.state.scans.length - 1]
-    this.setState({ scanOpen: true, scanClosing: false, scanVals: { w: '' + last.w, fat: '' + last.fat, mus: '' + last.mus, wat: '' + last.wat, visc: '' + last.visc, bmr: '' + last.bmr, ffm: '' + last.ffm } })
+    const pre = (k: string) => { const v = this.latestVal(k); return v == null ? '' : '' + v }
+    this.setState({ scanOpen: true, scanClosing: false, scanVals: { w: pre('w'), fat: pre('fat'), mus: pre('mus'), wat: pre('wat'), visc: pre('visc'), bmr: pre('bmr'), ffm: pre('ffm') } })
   }
 
   closeScan() {
@@ -427,16 +480,40 @@ export class Store extends React.Component<{ children: ReactNode }, AppState> {
 
   submitScan() {
     const sv = this.state.scanVals
-    const num = (x: string) => { const n = parseFloat(('' + x).replace(',', '.')); return isNaN(n) ? null : n }
-    const w = num(sv.w), fat = num(sv.fat)
-    if (!w || w <= 0 || fat == null || fat <= 0) { this.toast('Weight and body fat needed'); return }
-    const last = this.state.scans[this.state.scans.length - 1]
+    const num = (x: string) => { const n = parseFloat(('' + x).replace(',', '.')); return isNaN(n) || n <= 0 ? null : n }
+    const entries: { k: string; v: number }[] = []
+    for (const k of ['w', 'fat', 'mus', 'wat', 'visc', 'bmr', 'ffm'] as const) {
+      const v = num(sv[k])
+      // only log values the user actually filled — and skip unchanged prefills
+      if (v != null && v !== this.latestVal(k)) entries.push({ k, v })
+    }
+    if (!entries.length) { this.toast('Nothing new to log'); return }
+    this.addMeasurements(entries)
     const now = new Date()
-    const pick = (v2: number | null, fb: number) => v2 == null ? fb : v2
-    const scan = { d: MO3[now.getMonth()] + ' ' + now.getDate(), w, fat, mus: pick(num(sv.mus), last.mus), wat: pick(num(sv.wat), last.wat), visc: pick(num(sv.visc), last.visc), bmr: pick(num(sv.bmr), last.bmr), ffm: pick(num(sv.ffm), last.ffm) }
-    this.setState(s => ({ scans: [...s.scans, scan] }))
-    this.toast('Scan logged — ' + scan.d)
+    this.toast('Scan logged — ' + MO3[now.getMonth()] + ' ' + now.getDate())
     this.closeScan()
+  }
+
+  // ── manual measurement sheet ───────────────────────────────────
+  openMs() { clearTimeout(this.mst); this.setState({ msOpen: true, msClosing: false, msKey: null, msVal: '' }) }
+
+  closeMs() {
+    if (this.state.msClosing) return
+    this.setState({ msClosing: true })
+    this.mst = setTimeout(() => this.setState({ msOpen: false, msClosing: false }), 300)
+  }
+
+  pickMs(k: string) {
+    const v = this.latestVal(k)
+    this.setState({ msKey: k, msVal: v == null ? '' : '' + v })
+  }
+
+  saveMs(name: string) {
+    const v = parseFloat(('' + this.state.msVal).replace(',', '.'))
+    if (!this.state.msKey || isNaN(v) || v <= 0) { this.toast('Enter a value first'); return }
+    this.addMeasurements([{ k: this.state.msKey, v }])
+    this.toast(name + ' logged')
+    this.closeMs()
   }
 
   // ── sets/reps editor ───────────────────────────────────────────
@@ -545,7 +622,13 @@ export class Store extends React.Component<{ children: ReactNode }, AppState> {
   }
 
   finishOb(skipped: boolean) {
-    this.setState(s => ({ obDone: true, obLoggedOut: false, weeklyGoal: s.obGoal }))
+    const s = this.state
+    const entries: { k: string; v: number }[] = []
+    const w = parseFloat(s.obW), h = parseFloat(s.obH)
+    if (w > 0 && this.latestVal('w') == null) entries.push({ k: 'w', v: w })
+    if (h > 0 && this.latestVal('h') == null) entries.push({ k: 'h', v: h })
+    this.addMeasurements(entries)
+    this.setState(s2 => ({ obDone: true, obLoggedOut: false, weeklyGoal: s2.obGoal, profileName: s2.obName.trim() || s2.profileName }))
     this.toast(skipped ? 'You can add a scan later in Stats' : 'Welcome to Forge')
   }
 
@@ -582,29 +665,10 @@ export class Store extends React.Component<{ children: ReactNode }, AppState> {
     if (this.pushing) { this.pushAgain = true; return }
     this.pushing = true
     try {
-      await pushAll(this.userId, this.state, USER_NAME)
+      await pushAll(this.userId, this.state)
     } catch { /* offline — retried on next change */ }
     this.pushing = false
     if (this.pushAgain) { this.pushAgain = false; this.schedulePush() }
-  }
-
-  // ── consistency log (deterministic demo history) ───────────────
-  getLog(): Record<string, { t: boolean; h: boolean }> {
-    if (this.logCache) return this.logCache
-    const log: Record<string, { t: boolean; h: boolean }> = {}
-    const today = new Date(); today.setHours(0, 0, 0, 0)
-    for (let i = 1; i <= 130; i++) {
-      const d = new Date(today); d.setDate(d.getDate() - i)
-      const k = dateKey(d)
-      let h = 0
-      for (let j = 0; j < k.length; j++) h = (h * 31 + k.charCodeAt(j)) >>> 0
-      h = Math.imul(h ^ (h >>> 13), 2654435761) >>> 0
-      h = (h ^ (h >>> 16)) >>> 0
-      log[k] = { t: (h % 100) < 60, h: ((h >>> 7) % 100) < 62 }
-      if (i <= 6) log[k].h = true
-    }
-    this.logCache = log
-    return log
   }
 
   openCal() { clearTimeout(this.clt); this.setState({ calOpen: true, calClosing: false, calOff: 0 }) }
@@ -657,7 +721,7 @@ export class Store extends React.Component<{ children: ReactNode }, AppState> {
     clearInterval(this.ti)
     if (this.mq && this.mqFn) this.mq.removeEventListener('change', this.mqFn)
     if (this.authUnsub) this.authUnsub()
-    ;[this.tt, this.tl, this.nt, this.xst, this.hyt, this.sst, this.clt, this.nrt, this.srt, this.ret, this.rct, this.persistT, this.pushT].forEach(t => clearTimeout(t))
+    ;[this.tt, this.tl, this.nt, this.xst, this.hyt, this.sst, this.clt, this.nrt, this.srt, this.ret, this.rct, this.mst, this.persistT, this.pushT].forEach(t => clearTimeout(t))
     this.lts.forEach(t => clearTimeout(t))
   }
 
@@ -665,6 +729,8 @@ export class Store extends React.Component<{ children: ReactNode }, AppState> {
     try {
       const out: Record<string, unknown> = { dayKey: todayKey() }
       for (const k of PERSIST_KEYS) out[k] = this.state[k]
+      // today's tracked flags land in the day log so history stays real
+      out.dayLog = { ...this.state.dayLog, [todayKey()]: { t: this.state.trainedToday, h: this.state.water >= this.state.waterGoal } }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(out))
     } catch { /* storage full/unavailable — app still works in-memory */ }
     this.schedulePush()

@@ -1,18 +1,25 @@
 import { dateKey } from './dates'
-import type { AppState } from './types'
-import type { Store } from '../store/store'
+import type { AppState, DayFlags } from './types'
 
-/** Complete-weeks + hydration-streak counters (Stats tiles & calendar sheet). */
-export function computeConsistency(store: Store, s: AppState): { weeks: number; streak: number } {
-  const log = store.getLog()
+/** dayLog with today's live values overlaid. */
+export function liveLog(s: AppState): Record<string, DayFlags> {
   const today = new Date(); today.setHours(0, 0, 0, 0)
-  const hydTodayMet = s.water >= s.waterGoal
+  return { ...s.dayLog, [dateKey(today)]: { t: s.trainedToday, h: s.water >= s.waterGoal } }
+}
 
-  let streak = hydTodayMet ? 1 : 0
-  for (let i = 1; i <= 200; i++) {
+/**
+ * Real consistency counters from tracked days only (no fabricated history):
+ * complete weeks = past weeks with ≥ weeklyGoal trained days; streak =
+ * consecutive days (ending today) with the hydration goal met.
+ */
+export function computeConsistency(s: AppState): { weeks: number; streak: number } {
+  const log = liveLog(s)
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+
+  let streak = log[dateKey(today)]?.h ? 1 : 0
+  for (let i = 1; i <= 400; i++) {
     const d = new Date(today); d.setDate(d.getDate() - i)
-    const f = log[dateKey(d)]
-    if (f && f.h) streak += 1
+    if (log[dateKey(d)]?.h) streak += 1
     else break
   }
 
@@ -20,14 +27,11 @@ export function computeConsistency(store: Store, s: AppState): { weeks: number; 
   let weeks = 0
   for (let w = 1; w <= 16; w++) {
     const start = new Date(monday); start.setDate(start.getDate() - 7 * w)
-    let n = 0, have = true
+    let n = 0
     for (let j = 0; j < 7; j++) {
       const d = new Date(start); d.setDate(d.getDate() + j)
-      const f = log[dateKey(d)]
-      if (!f) { have = false; break }
-      if (f.t) n += 1
+      if (log[dateKey(d)]?.t) n += 1
     }
-    if (!have) break
     if (n >= s.weeklyGoal) weeks += 1
   }
   return { weeks, streak }

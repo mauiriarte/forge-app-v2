@@ -3,7 +3,6 @@ import { useTheme } from '../lib/useTheme'
 import { tint, inputStyle } from '../lib/ui'
 import { BackChevron } from '../components/icons'
 import { ImageSlot } from '../components/ImageSlot'
-import { USER_NAME } from '../config'
 
 const EMAIL_RE = /\S+@\S+\.\S+/
 
@@ -12,8 +11,7 @@ export function Onboarding() {
   const { C, tintFg } = useTheme()
 
   const ob0ok = EMAIL_RE.test(s.obEmail) && s.obPass.length >= 6
-  const ob1ok = parseFloat(s.obW) > 0 && parseFloat(s.obH) > 0
-  const firstName = USER_NAME.split(' ')[0]
+  const ob1ok = s.obName.trim().length > 0 && parseFloat(s.obW) > 0 && parseFloat(s.obH) > 0
 
   const label = { fontSize: 9.5, letterSpacing: 1.6, fontWeight: 700, color: tint(42) } as const
   const bigInput = inputStyle('s1', '15px', 15, 15)
@@ -79,7 +77,7 @@ export function Onboarding() {
             const res = await store.sbLogin(s.obEmail, s.obPass)
             if (res !== true) { store.toast(res); return }
             store.setState({ obDone: true, obLoggedOut: false })
-            store.toast('Welcome back, ' + firstName)
+            store.toast('Welcome back')
           }} style={{ marginTop: 22, height: 54, borderRadius: 17, background: 'var(--color-accent)', opacity: ob0ok ? 1 : 0.45, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15.5, fontWeight: 600, color: 'var(--color-accent-on)', transition: 'all 0.2s' }}>Log in</div>
           <div style={{ marginTop: 16, textAlign: 'center', fontSize: 12.5, color: tint(45) }}>
             New here? <span onClick={() => store.setState({ obMode: 'signup', obStep: 0 })} style={{ cursor: 'pointer', color: 'var(--color-accent-hi)', fontWeight: 600 }}>Create an account</span>
@@ -92,7 +90,9 @@ export function Onboarding() {
         <div style={{ marginTop: 36, animation: 'fgInRight 0.35s cubic-bezier(0.24,0.85,0.32,1) both' }}>
           <div style={{ fontSize: 29, fontWeight: 700, letterSpacing: -1 }}>About you</div>
           <div style={{ fontSize: 13, color: tint(50), marginTop: 7, lineHeight: 1.5 }}>Your starting point for body stats and weekly goals.</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 26 }}>
+          <div style={{ marginTop: 26, ...label }}>NAME</div>
+          <input className="fg-input" value={s.obName} onChange={(e) => store.setState({ obName: e.target.value })} placeholder="How should we greet you?" style={{ marginTop: 8, ...bigInput }} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 16 }}>
             <div>
               <div style={label}>WEIGHT · KG</div>
               <input className="fg-input" value={s.obW} onChange={(e) => store.setState({ obW: e.target.value })} inputMode="decimal" placeholder="95.2" style={{ marginTop: 8, ...bigInput }} />
@@ -112,7 +112,7 @@ export function Onboarding() {
             })}
           </div>
           <div style={{ marginTop: 8, fontSize: 11, color: tint(40) }}>Weeks where you hit this count as complete — 150 XP each.</div>
-          <div className="pr97" onClick={() => { if (!ob1ok) { store.toast('Weight and height needed'); return } store.setState({ obStep: 2 }) }} style={{ marginTop: 28, height: 54, borderRadius: 17, background: 'var(--color-accent)', opacity: ob1ok ? 1 : 0.45, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15.5, fontWeight: 600, color: 'var(--color-accent-on)', transition: 'all 0.2s' }}>Continue</div>
+          <div className="pr97" onClick={() => { if (!ob1ok) { store.toast('Name, weight and height needed'); return } store.setState({ obStep: 2 }) }} style={{ marginTop: 28, height: 54, borderRadius: 17, background: 'var(--color-accent)', opacity: ob1ok ? 1 : 0.45, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15.5, fontWeight: 600, color: 'var(--color-accent-on)', transition: 'all 0.2s' }}>Continue</div>
         </div>
       )}
 

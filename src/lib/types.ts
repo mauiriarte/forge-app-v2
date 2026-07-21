@@ -16,6 +16,7 @@ export interface Routine {
   exs: RoutineExercise[]
 }
 
+/** Legacy full-scan row — only used to migrate old persisted data. */
 export interface Scan {
   d: string
   w: number
@@ -26,6 +27,21 @@ export interface Scan {
   bmr: number
   ffm: number
 }
+
+/** One body measurement entry: metric key, value, epoch-ms timestamp. */
+export interface Measurement {
+  k: string
+  v: number
+  t: number
+}
+
+/** Per-day tracked flags: trained / hydration goal met. */
+export interface DayFlags {
+  t: boolean
+  h: boolean
+}
+
+export type Timeline = 'w' | 'm' | 'y'
 
 export interface SessionRecord {
   dNum: number
@@ -69,8 +85,9 @@ export interface AppState {
   // data
   routines: Routine[]
   sessions: SessionRecord[]
-  scans: Scan[]
-  streak: number
+  measurements: Measurement[]
+  dayLog: Record<string, DayFlags>
+  profileName: string
   // onboarding
   obDone: boolean
   obLoggedOut: boolean
@@ -78,6 +95,7 @@ export interface AppState {
   obMode: 'signup' | 'login'
   obEmail: string
   obPass: string
+  obName: string
   obW: string
   obH: string
   obGoal: number
@@ -121,9 +139,15 @@ export interface AppState {
   trainedToday: boolean
   // body
   bodyMetric: string
+  timeline: Timeline
   scanOpen: boolean
   scanClosing: boolean
   scanVals: ScanVals
+  // manual measurement sheet
+  msOpen: boolean
+  msClosing: boolean
+  msKey: string | null
+  msVal: string
   // toast
   toast: string | null
   toastLeaving: boolean
