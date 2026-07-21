@@ -3,6 +3,7 @@ import { useTheme } from '../lib/useTheme'
 import { tint, screenPane } from '../lib/ui'
 import { DAY3 } from '../lib/dates'
 import { libOf } from '../lib/library'
+import { gifFor } from '../lib/exerciseGifs'
 import { BackChevron, Chevron, Dots, Pencil, Swap, Trash } from '../components/icons'
 import { ImageSlot } from '../components/ImageSlot'
 
@@ -83,7 +84,7 @@ export function RoutineDetail({ z, anim }: { z: number; anim: string }) {
                 }}
               >
                 <div onClick={(ev) => ev.stopPropagation()} style={{ width: 78, height: 78, borderRadius: 16, overflow: 'hidden', background: 'var(--color-bg)', border: `1px solid ${tint(7)}`, flexShrink: 0 }}>
-                  <ImageSlot id={'fx-' + e.lib} placeholder="GIF" />
+                  <ImageSlot id={'fx-' + e.lib} placeholder="GIF" fallbackSrc={gifFor(e.lib)} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 16.5, fontWeight: 700, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{L.name}</div>

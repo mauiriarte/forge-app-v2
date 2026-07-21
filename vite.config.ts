@@ -28,6 +28,18 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,woff2}'],
+        runtimeCaching: [
+          {
+            // ExerciseDB demo GIFs — cache-first so they work offline after first view
+            urlPattern: /^https:\/\/static\.exercisedb\.dev\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'exercise-gifs',
+              expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 90 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
     }),
   ],

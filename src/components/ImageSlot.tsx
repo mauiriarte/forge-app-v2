@@ -20,20 +20,24 @@ function writeSlot(id: string, dataUrl: string | null) {
 /**
  * User-fillable image placeholder (the prototype's <image-slot>).
  * Click to browse or drag an image on; persists per-id in localStorage.
+ * `fallbackSrc` shows when the user hasn't dropped their own image
+ * (e.g. the ExerciseDB demo GIF for a movement).
  */
-export function ImageSlot({ id, placeholder, style }: { id: string; placeholder: string; style?: CSSProperties }) {
-  const [src, setSrc] = useState<string | null>(() => readSlots()[id] || null)
+export function ImageSlot({ id, placeholder, fallbackSrc, style }: { id: string; placeholder: string; fallbackSrc?: string; style?: CSSProperties }) {
+  const [dropped, setDropped] = useState<string | null>(() => readSlots()[id] || null)
+  const [fallbackBroken, setFallbackBroken] = useState(false)
   const [over, setOver] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => { setSrc(readSlots()[id] || null) }, [id])
+  useEffect(() => { setDropped(readSlots()[id] || null); setFallbackBroken(false) }, [id])
+  const src = dropped || (fallbackSrc && !fallbackBroken ? fallbackSrc : null)
 
   const load = (file: File | undefined) => {
     if (!file || !file.type.startsWith('image/')) return
     const reader = new FileReader()
     reader.onload = () => {
       const url = reader.result as string
-      setSrc(url)
+      setDropped(url)
       writeSlot(id, url)
     }
     reader.readAsDataURL(file)
@@ -54,7 +58,14 @@ export function ImageSlot({ id, placeholder, style }: { id: string; placeholder:
       }}
     >
       {src ? (
-        <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} draggable={false} />
+        <img
+          src={src}
+          alt=""
+          loading="lazy"
+          onError={() => { if (!dropped) setFallbackBroken(true) }}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', background: '#FFFFFF' }}
+          draggable={false}
+        />
       ) : (
         <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 0.6, color: tint(30), textAlign: 'center', padding: '0 14px', lineHeight: 1.5 }}>
           {placeholder}

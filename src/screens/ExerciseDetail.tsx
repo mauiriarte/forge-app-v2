@@ -2,6 +2,7 @@ import { useStore } from '../store/store'
 import { useTheme } from '../lib/useTheme'
 import { tint, overline, screenPane } from '../lib/ui'
 import { libOf } from '../lib/library'
+import { gifFor } from '../lib/exerciseGifs'
 import { BackChevron } from '../components/icons'
 import { ImageSlot } from '../components/ImageSlot'
 import { SetMarkers } from '../components/SetMarkers'
@@ -68,7 +69,7 @@ export function ExerciseDetail({ z, anim }: { z: number; anim: string }) {
 
       {/* demo media */}
       <div style={{ marginTop: 16, height: 210, borderRadius: 22, overflow: 'hidden', background: 'var(--color-surface)', border: `1px solid ${tint(8)}` }}>
-        <ImageSlot id={'fx-' + ex.lib} placeholder="Drop a demo GIF of the movement" />
+        <ImageSlot id={'fx-' + ex.lib} placeholder="Drop a demo GIF of the movement" fallbackSrc={gifFor(ex.lib)} />
       </div>
 
       {/* live session panel */}
