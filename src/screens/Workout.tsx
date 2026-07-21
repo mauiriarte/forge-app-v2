@@ -4,7 +4,9 @@ import { tint, mix, overline, screenPane } from '../lib/ui'
 import { pad } from '../lib/dates'
 import { libOf } from '../lib/library'
 import { BackChevron, Check, Chevron, Swap } from '../components/icons'
-import { SetMarkers } from '../components/SetMarkers'
+import { ImageSlot } from '../components/ImageSlot'
+import { ValueInput } from '../components/ValueInput'
+import { gifFor } from '../lib/exerciseGifs'
 
 export function Workout({ z, anim }: { z: number; anim: string }) {
   const { store, state: s } = useStore()
@@ -81,7 +83,14 @@ export function Workout({ z, anim }: { z: number; anim: string }) {
       )}
 
       {/* current-exercise hero */}
-      {s.sessOn && curEx && curLib && (
+      {s.sessOn && curEx && curLib && (() => {
+        const weighted = curLib.step > 0
+        const repsArr = store.repsArrOf(curEx.uid, curEx.sets, curEx.reps)
+        const wArr = store.wArrOf(curEx.uid, curEx.sets)
+        const done = s.sessSets[curEx.uid] || 0
+        const repsUnit = /s$/.test(curEx.reps) ? 'SEC' : /m$/.test(curEx.reps) ? 'M' : 'REPS'
+        const heroInput = { height: 40, borderRadius: 12, background: 'rgba(10,26,18,0.26)', border: `1px solid ${mix('var(--color-accent-on)', 28)}`, color: 'var(--color-accent-on)', fontSize: 15 } as const
+        return (
         <div className="pr98" onClick={() => store.openExercise(curEx.uid, 'workout')} style={{ marginTop: 16, borderRadius: 28, background: 'var(--color-accent)', padding: 20, transition: 'transform 0.15s' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
             <div style={{ fontSize: 10, letterSpacing: 1.6, fontWeight: 700, color: mix('var(--color-accent-on)', 70) }}>
@@ -89,13 +98,43 @@ export function Workout({ z, anim }: { z: number; anim: string }) {
             </div>
             <svg width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M1 1l5 5-5 5" style={{ stroke: mix('var(--color-accent-on)', 60) }} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </div>
-          <div style={{ fontSize: 25, fontWeight: 700, letterSpacing: -0.8, color: 'var(--color-accent-on)', marginTop: 5 }}>{curLib.name}</div>
-          <div style={{ fontSize: 13, color: mix('var(--color-accent-on)', 75), marginTop: 3 }}>
-            {curEx.sets} × {curEx.reps}{curLib.step > 0 ? ' · ' + (store.wOf(curEx.uid) || 0) + ' kg' : ' · bodyweight'}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 13, marginTop: 10 }}>
+            <div onClick={(ev) => ev.stopPropagation()} style={{ width: 64, height: 64, borderRadius: 14, overflow: 'hidden', background: '#FFFFFF', border: `1px solid ${mix('var(--color-accent-on)', 28)}`, flexShrink: 0 }}>
+              <ImageSlot id={'fx-' + curEx.lib} placeholder="GIF" fallbackSrc={gifFor(curEx.lib)} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: -0.7, color: 'var(--color-accent-on)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{curLib.name}</div>
+              <div style={{ fontSize: 12.5, color: mix('var(--color-accent-on)', 75), marginTop: 2 }}>
+                {curEx.sets} × {curEx.reps}{weighted ? ' · ' + (store.wOf(curEx.uid) || 0) + ' kg' : ' · bodyweight'}
+              </div>
+            </div>
           </div>
-          <SetMarkers ex={curEx} hero />
+          <div style={{ display: 'flex', gap: 7, marginTop: 14, alignItems: 'center' }}>
+            <div style={{ flex: 1, fontSize: 8.5, letterSpacing: 1.2, fontWeight: 700, color: mix('var(--color-accent-on)', 60) }}>TAP WHEN DONE</div>
+            <div style={{ width: 64, textAlign: 'center', fontSize: 8.5, letterSpacing: 1.2, fontWeight: 700, color: mix('var(--color-accent-on)', 60) }}>{repsUnit}</div>
+            {weighted && <div style={{ width: 76, textAlign: 'center', fontSize: 8.5, letterSpacing: 1.2, fontWeight: 700, color: mix('var(--color-accent-on)', 60) }}>KG</div>}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 6 }}>
+            {Array.from({ length: curEx.sets }, (_, i) => {
+              const on = i < done
+              return (
+                <div key={i} style={{ display: 'flex', gap: 7 }}>
+                  <div
+                    className="pr96"
+                    onClick={(ev) => { ev.stopPropagation(); store.toggleSet(curEx.uid, i, curEx.sets, curLib.name) }}
+                    style={{ flex: 1, height: 40, borderRadius: 12, background: on ? T.p : 'rgba(10,26,18,0.26)', border: `1.5px solid ${on ? 'transparent' : mix('var(--color-accent-on)', 28)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontSize: 10, fontWeight: 700, letterSpacing: 1, color: on ? T.pOn : mix('var(--color-accent-on)', 80), boxSizing: 'border-box', transition: 'all 0.25s' }}
+                  >
+                    SET {i + 1}
+                    {on && <Check w={12} h={10} color={T.pOn} strokeWidth={2.4} />}
+                  </div>
+                  <ValueInput value={repsArr[i]} onCommit={(n) => store.setSetReps(curEx.uid, i, n)} style={{ width: 64, ...heroInput }} />
+                  {weighted && <ValueInput value={wArr[i]} dec={1} onCommit={(n) => store.setSetW(curEx.uid, i, n)} style={{ width: 76, ...heroInput }} />}
+                </div>
+              )
+            })}
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
-            <div style={{ flex: 1, fontSize: 11, color: mix('var(--color-accent-on)', 60) }}>Tap a set when it's done — tap the card to adjust weight</div>
+            <div style={{ flex: 1, fontSize: 11, color: mix('var(--color-accent-on)', 60) }}>Tap a set when it's done — tap a number to type it</div>
             {upNext.length > 0 && (
               <div className="pr94" onClick={(e) => { e.stopPropagation(); store.postponeEx(curEx.uid) }} style={{ height: 36, padding: '0 13px', borderRadius: 999, background: 'rgba(10,26,18,0.26)', border: `1px solid ${mix('var(--color-accent-on)', 28)}`, display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, color: 'var(--color-accent-on)', flexShrink: 0, boxSizing: 'border-box', transition: 'transform 0.15s' }}>
                 <Swap />
@@ -104,7 +143,8 @@ export function Workout({ z, anim }: { z: number; anim: string }) {
             )}
           </div>
         </div>
-      )}
+        )
+      })()}
 
       {/* all-done card */}
       {s.sessOn && !curEx && (

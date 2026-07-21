@@ -80,6 +80,7 @@ export interface AppState {
   sessRid: string | null
   sessSets: Record<string, number>
   sessW: Record<string, number | number[] | null>
+  sessR: Record<string, number[]>
   sessElapsed: number
   sessDoneOpen: boolean
   sessOrder: string[]

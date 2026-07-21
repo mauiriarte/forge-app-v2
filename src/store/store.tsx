@@ -18,7 +18,7 @@ const PERSIST_KEYS = [
   'water', 'waterSize', 'waterGoal', 'weeklyGoal', 'trainedToday', 'lastSessMins',
   'obDone', 'obEmail', 'obName', 'obW', 'obH', 'obGoal',
   'bodyMetric', 'timeline', 'todayPick',
-  'sessOn', 'sessRid', 'sessSets', 'sessW', 'sessElapsed', 'sessOrder', 'restEnd', 'restTotal',
+  'sessOn', 'sessRid', 'sessSets', 'sessW', 'sessR', 'sessElapsed', 'sessOrder', 'restEnd', 'restTotal',
 ] as const
 
 // The original design-prototype demo routines. No longer seeded — kept only so
@@ -58,7 +58,7 @@ const initialState = (): AppState => ({
   routineOpen: null,
   exOpen: null, exFrom: null,
   todayPick: null, pwOpen: false, pwClosing: false,
-  sessOn: false, sessRid: null, sessSets: {}, sessW: {}, sessElapsed: 0, sessDoneOpen: false, sessOrder: [],
+  sessOn: false, sessRid: null, sessSets: {}, sessW: {}, sessR: {}, sessElapsed: 0, sessDoneOpen: false, sessOrder: [],
   restEnd: 0, restTotal: 90, restTick: 0, lastSessMins: 0,
   // New accounts start clean: no routines (create-first-routine empty state),
   // no measurements beyond what onboarding captures, no history.
@@ -100,6 +100,7 @@ function hydrate(): AppState {
       base.sessRid = null
       base.sessSets = {}
       base.sessW = {}
+      base.sessR = {}
       base.sessElapsed = 0
       base.sessOrder = []
       base.restEnd = 0
@@ -144,6 +145,7 @@ function hydrate(): AppState {
       base.sessRid = null
       base.sessSets = {}
       base.sessW = {}
+      base.sessR = {}
       base.sessElapsed = 0
       base.sessOrder = []
       base.restEnd = 0
@@ -301,13 +303,15 @@ export class Store extends React.Component<{ children: ReactNode }, AppState> {
     if (!r.exs.length) { this.openRoutine(r.id); this.toast('Add exercises to this routine first'); return }
     const sessW: AppState['sessW'] = {}
     const sessSets: AppState['sessSets'] = {}
+    const sessR: AppState['sessR'] = {}
     r.exs.forEach(e => {
       const st = libOf(e.lib).step
       sessW[e.uid] = e.lastW != null ? e.lastW : (st > 0 ? (st >= 2.5 ? 20 : 10) : null)
       sessSets[e.uid] = 0
+      sessR[e.uid] = Array.from({ length: e.sets }, () => parseInt(e.reps, 10) || 0)
     })
     this.startTimer()
-    this.setState({ sessOn: true, sessRid: r.id, sessW, sessSets, sessElapsed: 0, sessDoneOpen: false, restEnd: 0, sessOrder: r.exs.map(e => e.uid) })
+    this.setState({ sessOn: true, sessRid: r.id, sessW, sessSets, sessR, sessElapsed: 0, sessDoneOpen: false, restEnd: 0, sessOrder: r.exs.map(e => e.uid) })
     this.go('workout')
     this.toast('Workout started')
   }
@@ -335,14 +339,45 @@ export class Store extends React.Component<{ children: ReactNode }, AppState> {
     this.toast((L.name || 'Exercise') + ' moved to the end')
   }
 
+  /** Per-set weights as an array (scalar last-weight expands to one value per set). */
+  wArrOf(uid: string, sets: number): number[] {
+    const v = this.state.sessW[uid]
+    if (Array.isArray(v)) return v
+    return Array.from({ length: sets }, () => (typeof v === 'number' ? v : 20))
+  }
+
+  /** Per-set reps as an array, seeded from the routine's rep target. */
+  repsArrOf(uid: string, sets: number, target: string): number[] {
+    const v = this.state.sessR[uid]
+    if (Array.isArray(v) && v.length) return v
+    return Array.from({ length: sets }, () => parseInt(target, 10) || 0)
+  }
+
   stepSetW(uid: string, i: number, dir: number) {
     const ex = this.findEx(uid)
     if (!ex) return
     const step = libOf(ex.lib).step || 2.5
-    const cur = this.state.sessW[uid]
-    const arr = Array.isArray(cur) ? cur.slice() : Array.from({ length: ex.sets }, () => (typeof cur === 'number' ? cur : 20))
+    const arr = this.wArrOf(uid, ex.sets).slice()
     arr[i] = Math.max(0, Math.round((arr[i] + dir * step) * 10) / 10)
     this.setState(s => ({ sessW: { ...s.sessW, [uid]: arr } }))
+  }
+
+  /** Direct keyboard entry of a set's weight. */
+  setSetW(uid: string, i: number, v: number) {
+    const ex = this.findEx(uid)
+    if (!ex) return
+    const arr = this.wArrOf(uid, ex.sets).slice()
+    arr[i] = Math.max(0, Math.round(v * 10) / 10)
+    this.setState(s => ({ sessW: { ...s.sessW, [uid]: arr } }))
+  }
+
+  /** Direct keyboard entry of a set's reps. */
+  setSetReps(uid: string, i: number, v: number) {
+    const ex = this.findEx(uid)
+    if (!ex) return
+    const arr = this.repsArrOf(uid, ex.sets, ex.reps).slice()
+    arr[i] = Math.max(0, Math.round(v))
+    this.setState(s => ({ sessR: { ...s.sessR, [uid]: arr } }))
   }
 
   wOf(uid: string): number | null {

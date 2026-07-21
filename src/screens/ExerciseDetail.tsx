@@ -6,6 +6,7 @@ import { gifFor } from '../lib/exerciseGifs'
 import { BackChevron } from '../components/icons'
 import { ImageSlot } from '../components/ImageSlot'
 import { SetMarkers } from '../components/SetMarkers'
+import { ValueInput } from '../components/ValueInput'
 import type { RoutineExercise } from '../lib/types'
 
 export function ExerciseDetail({ z, anim }: { z: number; anim: string }) {
@@ -80,24 +81,40 @@ export function ExerciseDetail({ z, anim }: { z: number; anim: string }) {
             <div style={{ fontSize: 11, fontWeight: 700, color: tint(50) }}>{Math.min(ex.sets, setsDone)} / {ex.sets} SETS</div>
           </div>
           <SetMarkers ex={ex} hero={false} />
-          {L.step > 0 ? (
-            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {wArr.map((w, i) => {
-                const done = i < setsDone
-                return (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, borderRadius: 14, background: done ? tintOf(C.a, themeIsDark ? 0.12 : 0.09) : tintFg(0.04), border: `1px solid ${done ? tintOf(C.a, 0.3) : tintFg(0.09)}`, padding: '8px 10px', boxSizing: 'border-box', transition: 'all 0.25s' }}>
-                    <div style={{ width: 44, fontSize: 9.5, letterSpacing: 1, fontWeight: 700, color: done ? (themeIsDark ? C.aHi : C.a) : tintFg(0.45) }}>SET {i + 1}</div>
-                    <div style={{ flex: 1, textAlign: 'center', fontSize: 17, fontWeight: 700, letterSpacing: -0.3, color: T.text }}>{w} kg</div>
-                    <div className="pr9" onClick={() => store.stepSetW(ex.uid, i, -1)} style={{ width: 38, height: 38, borderRadius: 12, background: tint(6), border: `1px solid ${tint(12)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, color: tint(75), transition: 'transform 0.15s' }}>−</div>
-                    <div className="pr9" onClick={() => store.stepSetW(ex.uid, i, 1)} style={{ width: 38, height: 38, borderRadius: 12, background: tint(6), border: `1px solid ${tint(12)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, color: tint(75), transition: 'transform 0.15s' }}>+</div>
-                  </div>
-                )
-              })}
-              <div style={{ fontSize: 10.5, color: tint(38), marginTop: 2 }}>Per-set weight — the heaviest set becomes your logged weight.</div>
-            </div>
-          ) : (
-            <div style={{ marginTop: 13, fontSize: 12, color: tint(45) }}>Bodyweight movement — no load to track. Focus on tempo and range.</div>
-          )}
+          {(() => {
+            const weighted = L.step > 0
+            const repsArr = store.repsArrOf(ex.uid, ex.sets, ex.reps)
+            const repsUnit = /s$/.test(ex.reps) ? 'SEC' : /m$/.test(ex.reps) ? 'M' : 'REPS'
+            const cellInput = { height: 38, borderRadius: 12, background: tint(6), border: `1px solid ${tint(12)}`, color: T.text, fontSize: 15 } as const
+            return (
+              <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 8, padding: '0 10px', boxSizing: 'border-box' }}>
+                  <div style={{ width: 44 }} />
+                  <div style={{ width: 58, textAlign: 'center', fontSize: 8.5, letterSpacing: 1.2, fontWeight: 700, color: tintFg(0.4) }}>{repsUnit}</div>
+                  {weighted && <div style={{ flex: 1, textAlign: 'center', fontSize: 8.5, letterSpacing: 1.2, fontWeight: 700, color: tintFg(0.4) }}>KG</div>}
+                </div>
+                {repsArr.map((reps, i) => {
+                  const done = i < setsDone
+                  return (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 14, background: done ? tintOf(C.a, themeIsDark ? 0.12 : 0.09) : tintFg(0.04), border: `1px solid ${done ? tintOf(C.a, 0.3) : tintFg(0.09)}`, padding: '8px 10px', boxSizing: 'border-box', transition: 'all 0.25s' }}>
+                      <div style={{ width: 44, fontSize: 9.5, letterSpacing: 1, fontWeight: 700, color: done ? (themeIsDark ? C.aHi : C.a) : tintFg(0.45) }}>SET {i + 1}</div>
+                      <ValueInput value={reps} onCommit={(n) => store.setSetReps(ex.uid, i, n)} style={{ width: 58, ...cellInput }} />
+                      {weighted && (
+                        <>
+                          <ValueInput value={wArr[i]} dec={1} onCommit={(n) => store.setSetW(ex.uid, i, n)} style={{ flex: 1, minWidth: 0, ...cellInput }} />
+                          <div className="pr9" onClick={() => store.stepSetW(ex.uid, i, -1)} style={{ width: 38, height: 38, borderRadius: 12, background: tint(6), border: `1px solid ${tint(12)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, color: tint(75), transition: 'transform 0.15s', flexShrink: 0 }}>−</div>
+                          <div className="pr9" onClick={() => store.stepSetW(ex.uid, i, 1)} style={{ width: 38, height: 38, borderRadius: 12, background: tint(6), border: `1px solid ${tint(12)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, color: tint(75), transition: 'transform 0.15s', flexShrink: 0 }}>+</div>
+                        </>
+                      )}
+                    </div>
+                  )
+                })}
+                <div style={{ fontSize: 10.5, color: tint(38), marginTop: 2 }}>
+                  {weighted ? 'Tap a number to type it — the heaviest set becomes your logged weight.' : 'Tap the reps to type them — bodyweight movement, no load to track.'}
+                </div>
+              </div>
+            )
+          })()}
         </div>
       )}
 
