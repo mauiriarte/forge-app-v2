@@ -2,7 +2,7 @@ import { useStore } from '../store/store'
 import { useTheme } from '../lib/useTheme'
 import { tint, mix, overline, screenPane } from '../lib/ui'
 import { DAY3, MO3, pad } from '../lib/dates'
-import { Bolt, Check, Chevron, Play } from '../components/icons'
+import { Bolt, Check, Chevron, Play, Swap } from '../components/icons'
 
 export function Train({ z, anim }: { z: number; anim: string }) {
   const { store, state: s } = useStore()
@@ -44,7 +44,7 @@ export function Train({ z, anim }: { z: number; anim: string }) {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 9.5, letterSpacing: 1.6, fontWeight: 700, color: 'var(--color-accent-hi)' }}>DONE FOR TODAY</div>
-              <div style={{ fontSize: 21, fontWeight: 700, letterSpacing: -0.6, marginTop: 2 }}>{today.name}</div>
+              <div style={{ fontSize: 21, fontWeight: 700, letterSpacing: -0.6, marginTop: 2 }}>{s.sessions[0]?.name || today.name}</div>
               <div style={{ fontSize: 12, color: tint(45), marginTop: 2 }}>{s.lastSessMins || 0} min logged · weights saved</div>
             </div>
             <Chevron opacity={30} />
@@ -54,7 +54,15 @@ export function Train({ z, anim }: { z: number; anim: string }) {
 
       {heroTodo && today && (
         <div className="pr98" onClick={() => store.openRoutine(today.id)} style={{ marginTop: 18, borderRadius: 28, background: 'var(--color-accent)', padding: 20, transition: 'transform 0.15s' }}>
-          <div style={{ fontSize: 10, letterSpacing: 1.6, fontWeight: 700, color: mix('var(--color-accent-on)', 70) }}>UP TODAY</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <div style={{ fontSize: 10, letterSpacing: 1.6, fontWeight: 700, color: mix('var(--color-accent-on)', 70) }}>UP TODAY</div>
+            {s.routines.length > 1 && (
+              <div className="pr94" onClick={(e) => { e.stopPropagation(); store.openPw() }} style={{ height: 30, padding: '0 11px', borderRadius: 999, background: 'rgba(10,26,18,0.26)', border: `1px solid ${mix('var(--color-accent-on)', 28)}`, display: 'flex', alignItems: 'center', gap: 6, fontSize: 9.5, fontWeight: 700, letterSpacing: 0.8, color: 'var(--color-accent-on)', flexShrink: 0, boxSizing: 'border-box', transition: 'transform 0.15s' }}>
+                <Swap w={11} h={10} />
+                CHANGE
+              </div>
+            )}
+          </div>
           <div style={{ fontSize: 25, fontWeight: 700, letterSpacing: -0.8, color: 'var(--color-accent-on)', marginTop: 5 }}>{today.name}</div>
           <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
             {[today.exs.length + ' EXERCISES', '~' + (today.exs.length * 8) + ' MIN'].map(label => (

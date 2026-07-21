@@ -19,6 +19,7 @@ import { HydrationSheet } from './sheets/HydrationSheet'
 import { ExercisePickerSheet } from './sheets/ExercisePickerSheet'
 import { ScanSheet } from './sheets/ScanSheet'
 import { MeasurementSheet } from './sheets/MeasurementSheet'
+import { PickWorkoutSheet } from './sheets/PickWorkoutSheet'
 import { CalendarSheet } from './sheets/CalendarSheet'
 import { NewRoutineSheet } from './sheets/NewRoutineSheet'
 
@@ -130,6 +131,7 @@ export function App() {
       {s.exSheet && <ExercisePickerSheet />}
       {s.scanOpen && <ScanSheet />}
       {s.msOpen && <MeasurementSheet />}
+      {s.pwOpen && <PickWorkoutSheet />}
       {s.calOpen && <CalendarSheet />}
       {s.nrOpen && <NewRoutineSheet />}
 

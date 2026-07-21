@@ -50,6 +50,7 @@ export interface SessionRecord {
   mins: number
   sets: number
   pr: string | null
+  rid?: string | null
 }
 
 export type Screen = 'home' | 'train' | 'detail' | 'workout' | 'exercise' | 'stats' | 'profile'
@@ -70,6 +71,10 @@ export interface AppState {
   routineOpen: string | null
   exOpen: string | null
   exFrom: Screen | null
+  /** Manual override of today's recommended workout (cleared on a new day). */
+  todayPick: { rid: string; day: string } | null
+  pwOpen: boolean
+  pwClosing: boolean
   // active session
   sessOn: boolean
   sessRid: string | null

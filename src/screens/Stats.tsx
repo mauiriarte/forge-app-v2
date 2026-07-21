@@ -2,7 +2,7 @@ import { useStore } from '../store/store'
 import { useTheme } from '../lib/useTheme'
 import { tint, overline, screenPane } from '../lib/ui'
 import { computeConsistency } from '../lib/consistency'
-import { BODY_METRICS, fmtM, metricsWithData, seriesOf } from '../lib/bodyMetrics'
+import { BODY_METRICS, fmtM, idealWeightBand, metricsWithData, seriesOf } from '../lib/bodyMetrics'
 import { MO3 } from '../lib/dates'
 import type { Measurement, Timeline } from '../lib/types'
 
@@ -67,12 +67,18 @@ export function Stats({ z, anim }: { z: number; anim: string }) {
   const bBetter = selDef.down ? bDelta < 0 : bDelta > 0
   const fmtDelta = (d: number, dec: number) => (d > 0 ? '+' : d < 0 ? '−' : '±') + fmtM(Math.abs(d), dec)
 
-  const hasBand = single != null && selDef.lo != null && bCur != null
-  const bandPct = (v: number) => Math.max(0, Math.min(100, (v - (selDef.min || 0)) / ((selDef.max || 1) - (selDef.min || 0)) * 100))
-  const inIdeal = hasBand && bCur! >= selDef.lo! && bCur! <= selDef.hi!
-  const bodyStatus = !hasBand ? '' : inIdeal ? 'In the ideal range'
-    : bCur! > selDef.hi! ? fmtM(bCur! - selDef.hi!, selDef.dec) + (selDef.unit ? ' ' + selDef.unit : '') + ' over ideal'
-    : fmtM(selDef.lo! - bCur!, selDef.dec) + (selDef.unit ? ' ' + selDef.unit : '') + ' under ideal'
+  // Ideal band: weight derives from the account's height; others use
+  // population-generic ranges only.
+  const band = single != null && bCur != null
+    ? (selDef.k === 'w'
+      ? idealWeightBand(s.measurements)
+      : (selDef.lo != null ? { lo: selDef.lo, hi: selDef.hi!, min: selDef.min!, max: selDef.max! } : null))
+    : null
+  const bandPct = (v: number) => band ? Math.max(0, Math.min(100, (v - band.min) / (band.max - band.min) * 100)) : 0
+  const inIdeal = band != null && bCur! >= band.lo && bCur! <= band.hi
+  const bodyStatus = !band ? '' : inIdeal ? 'In the ideal range'
+    : bCur! > band.hi ? fmtM(bCur! - band.hi, selDef.dec) + (selDef.unit ? ' ' + selDef.unit : '') + ' over ideal'
+    : fmtM(band.lo - bCur!, selDef.dec) + (selDef.unit ? ' ' + selDef.unit : '') + ' under ideal'
 
   const lastEntry = s.measurements.length ? s.measurements.reduce((a, b) => (b.t > a.t ? b : a)) : null
 
@@ -196,16 +202,16 @@ export function Stats({ z, anim }: { z: number; anim: string }) {
               </div>
             )}
 
-            {hasBand && (
+            {band && (
               <div style={{ marginTop: 15 }}>
                 <div style={{ position: 'relative', height: 8, borderRadius: 99, background: tint(8) }}>
-                  <div style={{ position: 'absolute', top: 0, bottom: 0, left: bandPct(selDef.lo!) + '%', width: (bandPct(selDef.hi!) - bandPct(selDef.lo!)) + '%', borderRadius: 99, background: tintOf(C.a, 0.3) }} />
+                  <div style={{ position: 'absolute', top: 0, bottom: 0, left: bandPct(band.lo) + '%', width: (bandPct(band.hi) - bandPct(band.lo)) + '%', borderRadius: 99, background: tintOf(C.a, 0.3) }} />
                   <div style={{ position: 'absolute', top: '50%', left: bandPct(bCur!) + '%', transform: 'translate(-50%,-50%)', width: 15, height: 15, borderRadius: '50%', background: inIdeal ? C.a : T.text, border: `3px solid ${T.s1}` }} />
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 7, fontSize: 9.5, letterSpacing: 0.6, fontWeight: 700, color: tint(38) }}>
-                  <div>LOW · {selDef.lo}</div>
+                  <div>LOW · {band.lo}</div>
                   <div style={{ fontSize: 11, color: inIdeal ? (themeIsDark ? C.aHi : C.a) : tintFg(0.55), letterSpacing: 0.2 }}>{bodyStatus}</div>
-                  <div>{selDef.hi} · HIGH</div>
+                  <div>{band.hi} · HIGH</div>
                 </div>
               </div>
             )}

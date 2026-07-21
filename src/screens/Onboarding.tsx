@@ -95,11 +95,11 @@ export function Onboarding() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 16 }}>
             <div>
               <div style={label}>WEIGHT · KG</div>
-              <input className="fg-input" value={s.obW} onChange={(e) => store.setState({ obW: e.target.value })} inputMode="decimal" placeholder="95.2" style={{ marginTop: 8, ...bigInput }} />
+              <input className="fg-input" value={s.obW} onChange={(e) => store.setState({ obW: e.target.value })} inputMode="decimal" placeholder="e.g. 70" style={{ marginTop: 8, ...bigInput }} />
             </div>
             <div>
               <div style={label}>HEIGHT · CM</div>
-              <input className="fg-input" value={s.obH} onChange={(e) => store.setState({ obH: e.target.value })} inputMode="decimal" placeholder="184" style={{ marginTop: 8, ...bigInput }} />
+              <input className="fg-input" value={s.obH} onChange={(e) => store.setState({ obH: e.target.value })} inputMode="decimal" placeholder="e.g. 175" style={{ marginTop: 8, ...bigInput }} />
             </div>
           </div>
           <div style={{ marginTop: 18, ...label }}>TRAINING DAYS PER WEEK</div>
@@ -111,7 +111,7 @@ export function Onboarding() {
               )
             })}
           </div>
-          <div style={{ marginTop: 8, fontSize: 11, color: tint(40) }}>Weeks where you hit this count as complete — 150 XP each.</div>
+          <div style={{ marginTop: 8, fontSize: 11, color: tint(40) }}>Weeks where you hit this count as complete.</div>
           <div className="pr97" onClick={() => { if (!ob1ok) { store.toast('Name, weight and height needed'); return } store.setState({ obStep: 2 }) }} style={{ marginTop: 28, height: 54, borderRadius: 17, background: 'var(--color-accent)', opacity: ob1ok ? 1 : 0.45, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15.5, fontWeight: 600, color: 'var(--color-accent-on)', transition: 'all 0.2s' }}>Continue</div>
         </div>
       )}

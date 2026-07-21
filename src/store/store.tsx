@@ -17,7 +17,7 @@ const PERSIST_KEYS = [
   'themeSel', 'routines', 'sessions', 'measurements', 'dayLog', 'profileName',
   'water', 'waterSize', 'waterGoal', 'weeklyGoal', 'trainedToday', 'lastSessMins',
   'obDone', 'obEmail', 'obName', 'obW', 'obH', 'obGoal',
-  'bodyMetric', 'timeline',
+  'bodyMetric', 'timeline', 'todayPick',
   'sessOn', 'sessRid', 'sessSets', 'sessW', 'sessElapsed', 'sessOrder', 'restEnd', 'restTotal',
 ] as const
 
@@ -57,6 +57,7 @@ const initialState = (): AppState => ({
   screen: null, prevScreen: null, navDir: 1, navved: false, detailFrom: null,
   routineOpen: null,
   exOpen: null, exFrom: null,
+  todayPick: null, pwOpen: false, pwClosing: false,
   sessOn: false, sessRid: null, sessSets: {}, sessW: {}, sessElapsed: 0, sessDoneOpen: false, sessOrder: [],
   restEnd: 0, restTotal: 90, restTick: 0, lastSessMins: 0,
   // New accounts start clean: no routines (create-first-routine empty state),
@@ -108,6 +109,12 @@ function hydrate(): AppState {
     const isOwner = email === '' || email === OWNER_EMAIL
     const legacyScans = (saved as { scans?: Scan[] }).scans
 
+    // The design-prototype demo workout history was seeded data, never real
+    // usage — strip it from EVERY install, owner included.
+    base.sessions = base.sessions.filter(x => !DEMO_SESSION_KEYS.has(x.dNum + '|' + x.dMon + '|' + x.name))
+    // Stale manual pick from a previous day falls back to the recommendation.
+    if (base.todayPick && base.todayPick.day !== todayKey()) base.todayPick = null
+
     if (isOwner) {
       // Owner installs: demo routines → Hevy program; legacy scan history
       // converts to measurement entries; owner name fills in.
@@ -122,7 +129,6 @@ function hydrate(): AppState {
     } else {
       // Any other install: strip everything that was seeded demo/owner data.
       base.routines = base.routines.filter(r => !DEMO_ROUTINE_IDS.includes(r.id) && !HEVY_ROUTINE_IDS.includes(r.id))
-      base.sessions = base.sessions.filter(x => !DEMO_SESSION_KEYS.has(x.dNum + '|' + x.dMon + '|' + x.name))
       if (!base.measurements.length) {
         // Their own onboarding numbers become their first entries.
         const now = Date.now()
@@ -175,6 +181,7 @@ export class Store extends React.Component<{ children: ReactNode }, AppState> {
   private sw: SwipeTrack | null = null
   private swSuppress = false
   private mst: ReturnType<typeof setTimeout> | undefined
+  private pwt: ReturnType<typeof setTimeout> | undefined
   private persistT: ReturnType<typeof setTimeout> | undefined
   private userId: string | null = null
   private pushT: ReturnType<typeof setTimeout> | undefined
@@ -187,9 +194,43 @@ export class Store extends React.Component<{ children: ReactNode }, AppState> {
     return this.state.screen || 'home'
   }
 
+  /** Next workout in program order: the routine after the last completed one. */
+  recommendedRoutine(): Routine | null {
+    const s = this.state
+    if (!s.routines.length) return null
+    let idx = -1
+    for (const sess of s.sessions) {
+      const i = s.routines.findIndex(r => (sess.rid && r.id === sess.rid) || r.name === sess.name)
+      if (i >= 0) { idx = i; break }
+    }
+    return s.routines[(idx + 1) % s.routines.length]
+  }
+
+  /** Today's workout: the user's manual pick for today, else the in-order recommendation. */
   todayRoutine(): Routine | null {
-    const day = new Date().getDay()
-    return this.state.routines.find(r => r.days.indexOf(day) >= 0) || this.state.routines[0] || null
+    const s = this.state
+    if (s.todayPick && s.todayPick.day === todayKey()) {
+      const r = s.routines.find(x => x.id === s.todayPick!.rid)
+      if (r) return r
+    }
+    return this.recommendedRoutine()
+  }
+
+  // ── change-today's-workout sheet ───────────────────────────────
+  openPw() { clearTimeout(this.pwt); this.setState({ pwOpen: true, pwClosing: false }) }
+
+  closePw() {
+    if (this.state.pwClosing) return
+    this.setState({ pwClosing: true })
+    this.pwt = setTimeout(() => this.setState({ pwOpen: false, pwClosing: false }), 300)
+  }
+
+  pickToday(rid: string) {
+    const r = this.state.routines.find(x => x.id === rid)
+    if (!r) return
+    this.setState({ todayPick: { rid, day: todayKey() } })
+    this.toast('Up next — ' + r.name)
+    this.closePw()
   }
 
   findEx(uid: string | null): Routine['exs'][number] | null {
@@ -336,7 +377,7 @@ export class Store extends React.Component<{ children: ReactNode }, AppState> {
         if (L.step > 0 && w != null && e.lastW != null && w > e.lastW && !pr) pr = L.name
       })
       const setsDone = r.exs.reduce((a, e) => a + Math.min(e.sets, s.sessSets[e.uid] || 0), 0)
-      const sess: SessionRecord = { dNum: now.getDate(), dMon: MO3[now.getMonth()], name: r.name, mins, sets: setsDone, pr }
+      const sess: SessionRecord = { dNum: now.getDate(), dMon: MO3[now.getMonth()], name: r.name, mins, sets: setsDone, pr, rid: r.id }
       this.setState({ routines, sessOn: false, trainedToday: true, lastSessMins: mins, restEnd: 0, sessions: [sess].concat(s.sessions).slice(0, 8) })
       this.toast('Workout logged — ' + mins + ' min')
     } else {

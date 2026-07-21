@@ -50,6 +50,7 @@ create table if not exists public.workout_sessions (
   mins       int  not null,
   sets       int  not null,
   pr         text,
+  rid        text,
   created_at timestamptz not null default now()
 );
 

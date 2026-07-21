@@ -52,7 +52,7 @@ export async function pullAll(userId: string): Promise<Partial<CloudPatch> | nul
     k: m.k, v: Number(m.v), t: new Date(m.t).getTime(),
   }))
   const sessions: SessionRecord[] = (sessionsQ.data || []).map(s => ({
-    dNum: s.d_num, dMon: s.d_mon, name: s.name, mins: s.mins, sets: s.sets, pr: s.pr,
+    dNum: s.d_num, dMon: s.d_mon, name: s.name, mins: s.mins, sets: s.sets, pr: s.pr, rid: s.rid,
   }))
   const dayLog: Record<string, DayFlags> = {}
   for (const d of daysQ.data || []) dayLog[d.day] = { t: !!d.trained, h: !!d.water_goal_met }
@@ -111,7 +111,7 @@ export async function pushAll(userId: string, s: AppState): Promise<void> {
   if (s.sessions.length) {
     // insert oldest-first so created_at ordering matches the list order
     await supabase.from('workout_sessions').insert(s.sessions.slice().reverse().map(h => ({
-      user_id: userId, d_num: h.dNum, d_mon: h.dMon, name: h.name, mins: h.mins, sets: h.sets, pr: h.pr,
+      user_id: userId, d_num: h.dNum, d_mon: h.dMon, name: h.name, mins: h.mins, sets: h.sets, pr: h.pr, rid: h.rid ?? null,
     })))
   }
 
