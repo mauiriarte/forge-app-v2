@@ -31,6 +31,24 @@ export const EXERCISE_GIFS: Record<string, string> = {
   carry: 'https://static.exercisedb.dev/media/qPEzJjA.gif',      // farmers walk
   plank: 'https://static.exercisedb.dev/media/VBAWRPG.gif',      // weighted front plank
   hangraise: 'https://static.exercisedb.dev/media/I3tsCnC.gif',  // hanging leg raise
+  // ── Hevy upper/lower program movements ──
+  dbrow: 'https://static.exercisedb.dev/media/BJ0Hz5L.gif',          // dumbbell bent over row
+  dbshoulder: 'https://static.exercisedb.dev/media/znQUdHY.gif',     // dumbbell seated shoulder press
+  chestfly: 'https://static.exercisedb.dev/media/v3xmPAR.gif',       // lever seated fly
+  dipmachine: 'https://static.exercisedb.dev/media/BRImeP8.gif',     // lever seated dip
+  dbrdl: 'https://static.exercisedb.dev/media/rR0LJzx.gif',          // dumbbell romanian deadlift
+  legext: 'https://static.exercisedb.dev/media/my33uHU.gif',         // lever leg extension
+  seatedcurl: 'https://static.exercisedb.dev/media/Zg3XY7P.gif',     // lever seated leg curl
+  calfext: 'https://static.exercisedb.dev/media/7B4F5nZ.gif',        // lever calf press
+  crunchmachine: 'https://static.exercisedb.dev/media/Wgaz7pm.gif',  // lever seated crunch
+  kneeraise: 'https://static.exercisedb.dev/media/weoDEpH.gif',      // captains chair straight leg raise
+  machinerow: 'https://static.exercisedb.dev/media/7I6LNUG.gif',     // lever seated row
+  wristcurl: 'https://static.exercisedb.dev/media/2dImyQ8.gif',      // dumbbell seated palms up wrist curl
+  preacher: 'https://static.exercisedb.dev/media/qOgPVf6.gif',       // barbell preacher curl
+  backext: 'https://static.exercisedb.dev/media/zhMwOwE.gif',        // hyperextension
+  singlelegpress: 'https://static.exercisedb.dev/media/WWD6FzI.gif', // sled 45° one leg press
+  hipabd: 'https://static.exercisedb.dev/media/CHpahtl.gif',         // lever seated hip abduction
+  hipadd: 'https://static.exercisedb.dev/media/oHsrypV.gif',         // lever seated hip adduction
 }
 
 export const gifFor = (lib: string): string | undefined => EXERCISE_GIFS[lib]

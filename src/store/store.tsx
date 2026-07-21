@@ -7,6 +7,7 @@ import { DEFAULT_THEME } from '../config'
 import { supabase } from '../lib/supabase'
 import { pullAll, pushAll } from './sync'
 import { USER_NAME } from '../config'
+import { HEVY_ROUTINES } from '../lib/hevyRoutines'
 
 const STORAGE_KEY = 'forge-v2'
 
@@ -21,36 +22,10 @@ const PERSIST_KEYS = [
   'sessOn', 'sessRid', 'sessSets', 'sessW', 'sessElapsed', 'sessOrder', 'restEnd', 'restTotal',
 ] as const
 
-const defaultRoutines = (): Routine[] => [
-  { id: 'full', name: 'Full Body', mus: 'Full body', focus: 'Compound lifts, head to toe', days: [0], exs: [
-    { uid: 'u1', lib: 'deadlift', sets: 4, reps: '6', lastW: 100, hist: [90, 92.5, 95, 97.5] },
-    { uid: 'u2', lib: 'bench', sets: 4, reps: '8', lastW: 60, hist: [52.5, 55, 57.5] },
-    { uid: 'u3', lib: 'row', sets: 4, reps: '8', lastW: 65, hist: [57.5, 60, 62.5] },
-    { uid: 'u4', lib: 'kbswing', sets: 3, reps: '15', lastW: 16, hist: [12, 14] },
-    { uid: 'u5', lib: 'plank', sets: 3, reps: '60s', lastW: null, hist: [] },
-  ] },
-  { id: 'push', name: 'Push Day', mus: 'Push', focus: 'Chest, shoulders & triceps', days: [1, 4], exs: [
-    { uid: 'u6', lib: 'bench', sets: 4, reps: '8', lastW: 60, hist: [52.5, 55, 57.5] },
-    { uid: 'u7', lib: 'incline', sets: 3, reps: '10', lastW: 22, hist: [18, 20] },
-    { uid: 'u8', lib: 'ohp', sets: 4, reps: '8', lastW: 40, hist: [35, 37.5] },
-    { uid: 'u9', lib: 'latraise', sets: 3, reps: '12', lastW: 10, hist: [8, 9] },
-    { uid: 'u10', lib: 'pushdown', sets: 3, reps: '12', lastW: null, hist: [] },
-  ] },
-  { id: 'pull', name: 'Pull Day', mus: 'Pull', focus: 'Back & biceps', days: [2, 5], exs: [
-    { uid: 'u11', lib: 'pullup', sets: 4, reps: '6', lastW: null, hist: [] },
-    { uid: 'u12', lib: 'row', sets: 4, reps: '8', lastW: 65, hist: [57.5, 60, 62.5] },
-    { uid: 'u13', lib: 'latpull', sets: 3, reps: '10', lastW: 55, hist: [47.5, 50, 52.5] },
-    { uid: 'u14', lib: 'facepull', sets: 3, reps: '15', lastW: 25, hist: [20, 22.5] },
-    { uid: 'u15', lib: 'curl', sets: 3, reps: '12', lastW: 14, hist: [10, 12] },
-  ] },
-  { id: 'legs', name: 'Leg Day', mus: 'Legs', focus: 'Quads, glutes & hamstrings', days: [3, 6], exs: [
-    { uid: 'u16', lib: 'squat', sets: 4, reps: '8', lastW: 80, hist: [70, 72.5, 75, 77.5] },
-    { uid: 'u17', lib: 'rdl', sets: 4, reps: '8', lastW: 90, hist: [80, 85] },
-    { uid: 'u18', lib: 'legpress', sets: 3, reps: '10', lastW: 140, hist: [120, 130] },
-    { uid: 'u19', lib: 'split', sets: 3, reps: '10', lastW: 16, hist: [12, 14] },
-    { uid: 'u20', lib: 'calf', sets: 4, reps: '15', lastW: 50, hist: [40, 45] },
-  ] },
-]
+// The original design-prototype demo routines. No longer seeded — kept only so
+// hydrate() can recognize installs still carrying them and migrate to the
+// real Hevy program.
+const DEMO_ROUTINE_IDS = ['full', 'push', 'pull', 'legs']
 
 const initialState = (): AppState => ({
   themeSel: DEFAULT_THEME as ThemeSel, sysDark: true,
@@ -59,7 +34,9 @@ const initialState = (): AppState => ({
   exOpen: null, exFrom: null,
   sessOn: false, sessRid: null, sessSets: {}, sessW: {}, sessElapsed: 0, sessDoneOpen: false, sessOrder: [],
   restEnd: 0, restTotal: 90, restTick: 0, lastSessMins: 0,
-  routines: defaultRoutines(),
+  // New accounts start with no routines — the create-your-first-routine
+  // empty states on Home/Train take over.
+  routines: [],
   sessions: [
     { dNum: 10, dMon: 'JUL', name: 'Pull Day', mins: 52, sets: 17, pr: 'Lat pulldown' },
     { dNum: 9, dMon: 'JUL', name: 'Push Day', mins: 48, sets: 17, pr: null },
@@ -101,6 +78,21 @@ function hydrate(): AppState {
       // New day: hydration and "trained today" reset; a stale session is dropped.
       base.water = 0
       base.trainedToday = false
+      base.sessOn = false
+      base.sessRid = null
+      base.sessSets = {}
+      base.sessW = {}
+      base.sessElapsed = 0
+      base.sessOrder = []
+      base.restEnd = 0
+    }
+    // One-time migration: installs still carrying the design-prototype demo
+    // routines get the real Hevy upper/lower program instead.
+    if (base.routines.length && base.routines.every(r => DEMO_ROUTINE_IDS.includes(r.id))) {
+      base.routines = HEVY_ROUTINES
+    }
+    // Drop an active session whose routine no longer exists.
+    if (base.sessOn && !base.routines.some(r => r.id === base.sessRid)) {
       base.sessOn = false
       base.sessRid = null
       base.sessSets = {}

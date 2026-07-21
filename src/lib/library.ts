@@ -39,6 +39,24 @@ export const LIB: Record<string, LibEntry> = {
   carry: { name: 'Farmer carry', mus: 'Full body', eq: 'Dumbbells', sets: 3, reps: '40m', step: 2, pri: ['Forearms', 'Traps'], sec: ['Core'] },
   plank: { name: 'Plank', mus: 'Core', eq: 'Bodyweight', sets: 3, reps: '60s', step: 0, pri: ['Core'], sec: ['Shoulders', 'Glutes'] },
   hangraise: { name: 'Hanging leg raises', mus: 'Core', eq: 'Bodyweight', sets: 3, reps: '10', step: 0, pri: ['Abs'], sec: ['Hip flexors', 'Forearms'] },
+  // ── movements from the Hevy upper/lower program ──
+  dbrow: { name: 'Dumbbell row', mus: 'Pull', eq: 'Dumbbells', sets: 3, reps: '12', step: 2, pri: ['Lats', 'Mid back'], sec: ['Biceps', 'Rear delts'] },
+  dbshoulder: { name: 'Shoulder press (dumbbell)', mus: 'Push', eq: 'Dumbbells', sets: 3, reps: '12', step: 2, pri: ['Shoulders'], sec: ['Triceps', 'Upper chest'] },
+  chestfly: { name: 'Chest fly (machine)', mus: 'Push', eq: 'Machine', sets: 3, reps: '12', step: 2.5, pri: ['Chest'], sec: ['Front delts'] },
+  dipmachine: { name: 'Seated dip machine', mus: 'Push', eq: 'Machine', sets: 3, reps: '12', step: 2.5, pri: ['Triceps'], sec: ['Chest', 'Front delts'] },
+  dbrdl: { name: 'Romanian deadlift (dumbbell)', mus: 'Legs', eq: 'Dumbbells', sets: 3, reps: '12', step: 2, pri: ['Hamstrings', 'Glutes'], sec: ['Lower back'] },
+  legext: { name: 'Leg extension', mus: 'Legs', eq: 'Machine', sets: 3, reps: '12', step: 2.5, pri: ['Quads'], sec: [] },
+  seatedcurl: { name: 'Seated leg curl', mus: 'Legs', eq: 'Machine', sets: 3, reps: '12', step: 2.5, pri: ['Hamstrings'], sec: ['Calves'] },
+  calfext: { name: 'Calf extension', mus: 'Legs', eq: 'Machine', sets: 3, reps: '12', step: 2.5, pri: ['Calves'], sec: [] },
+  crunchmachine: { name: 'Crunch (machine)', mus: 'Core', eq: 'Machine', sets: 3, reps: '12', step: 2.5, pri: ['Abs'], sec: [] },
+  kneeraise: { name: 'Knee raise · parallel bars', mus: 'Core', eq: 'Bodyweight', sets: 3, reps: '12', step: 0, pri: ['Abs'], sec: ['Hip flexors'] },
+  machinerow: { name: 'Seated row (machine)', mus: 'Pull', eq: 'Machine', sets: 3, reps: '12', step: 2.5, pri: ['Mid back'], sec: ['Lats', 'Biceps'] },
+  wristcurl: { name: 'Wrist curl (palms up)', mus: 'Pull', eq: 'Dumbbells', sets: 3, reps: '12', step: 1, pri: ['Forearms'], sec: [] },
+  preacher: { name: 'Preacher curl (barbell)', mus: 'Pull', eq: 'Barbell', sets: 3, reps: '12', step: 2.5, pri: ['Biceps'], sec: ['Forearms'] },
+  backext: { name: 'Back extension', mus: 'Legs', eq: 'Plate', sets: 3, reps: '12', step: 2.5, pri: ['Lower back'], sec: ['Glutes', 'Hamstrings'] },
+  singlelegpress: { name: 'Single leg press', mus: 'Legs', eq: 'Machine', sets: 3, reps: '12', step: 2.5, pri: ['Quads'], sec: ['Glutes'] },
+  hipabd: { name: 'Hip abduction', mus: 'Legs', eq: 'Machine', sets: 3, reps: '12', step: 2.5, pri: ['Glutes'], sec: [] },
+  hipadd: { name: 'Hip adduction', mus: 'Legs', eq: 'Machine', sets: 3, reps: '12', step: 2.5, pri: ['Adductors'], sec: [] },
 }
 
 export const FOCUS: Record<string, string> = {
