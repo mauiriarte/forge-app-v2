@@ -51,6 +51,23 @@ Beyond the prototype: state persists to `localStorage` (including an in-flight w
 hydration and trained-today reset on a new day, and exercise image slots accept a
 dropped/browsed image that persists per exercise.
 
+## Supabase (auth + cloud sync)
+
+Project: **Forger** (`ydbojinuugfvwkfgyswl`). Schema lives in
+[supabase/migrations/20260720000000_init.sql](supabase/migrations/20260720000000_init.sql) —
+`profiles`, `routines`, `routine_exercises`, `workout_sessions`, `body_scans`,
+`daily_logs`, all with row-level security (each user sees only their own rows).
+
+Configuration is env-based: copy `.env.example` → `.env`, fill
+`VITE_SUPABASE_ANON_KEY`, rebuild. **Without the key the app runs in local-only
+mode** (localStorage, exactly the pre-Supabase behavior) — supabase-js is even
+tree-shaken out of the bundle. With the key:
+
+- Onboarding signup/login/forgot-password hit real Supabase auth.
+- On sign-in the cloud copy is pulled; a fresh account is seeded from local state.
+- Every change is pushed debounced (2.5s) — localStorage stays the offline cache,
+  so the PWA keeps working offline and reconciles when back online.
+
 ## Architecture
 
 - `src/store/store.tsx` — single store (React class component + context), a faithful port

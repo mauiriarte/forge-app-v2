@@ -4,6 +4,9 @@ import { LIB, FOCUS, libOf } from '../lib/library'
 import { dateKey, todayKey, MO3 } from '../lib/dates'
 import type { AppState, Routine, Screen, ScanVals, SessionRecord, ThemeSel } from '../lib/types'
 import { DEFAULT_THEME } from '../config'
+import { supabase } from '../lib/supabase'
+import { pullAll, pushAll } from './sync'
+import { USER_NAME } from '../config'
 
 const STORAGE_KEY = 'forge-v2'
 
@@ -140,6 +143,11 @@ export class Store extends React.Component<{ children: ReactNode }, AppState> {
   private swSuppress = false
   private logCache: Record<string, { t: boolean; h: boolean }> | null = null
   private persistT: ReturnType<typeof setTimeout> | undefined
+  private userId: string | null = null
+  private pushT: ReturnType<typeof setTimeout> | undefined
+  private pushing = false
+  private pushAgain = false
+  private authUnsub: (() => void) | undefined
 
   // ── derived helpers ────────────────────────────────────────────
   curScreen(): Screen {
@@ -521,15 +529,71 @@ export class Store extends React.Component<{ children: ReactNode }, AppState> {
     this.openRoutine(id)
   }
 
-  // ── onboarding ─────────────────────────────────────────────────
+  // ── onboarding / auth ──────────────────────────────────────────
+  // With Supabase configured these hit real auth; otherwise local-only mode.
+  hasCloud(): boolean { return !!supabase }
+
+  async sbSignUp(email: string, pass: string): Promise<'session' | 'confirm' | string> {
+    if (!supabase) return 'session'
+    const { data, error } = await supabase.auth.signUp({ email, password: pass })
+    if (error) return error.message
+    return data.session ? 'session' : 'confirm'
+  }
+
+  async sbLogin(email: string, pass: string): Promise<true | string> {
+    if (!supabase) return true
+    const { error } = await supabase.auth.signInWithPassword({ email, password: pass })
+    return error ? error.message : true
+  }
+
+  async sbForgot(email: string): Promise<true | string> {
+    if (!supabase) return true
+    const { error } = await supabase.auth.resetPasswordForEmail(email)
+    return error ? error.message : true
+  }
+
   finishOb(skipped: boolean) {
     this.setState(s => ({ obDone: true, obLoggedOut: false, weeklyGoal: s.obGoal }))
     this.toast(skipped ? 'You can add a scan later in Stats' : 'Welcome to Forge')
   }
 
   signOut() {
+    if (supabase) { supabase.auth.signOut() }
+    this.userId = null
     this.setState({ obDone: false, obLoggedOut: true, obMode: 'login', obStep: 0, obPass: '' })
     this.go('home')
+  }
+
+  private async onSignedIn(userId: string, email: string | undefined) {
+    if (this.userId === userId) return
+    this.userId = userId
+    this.setState({ obDone: true, obLoggedOut: false, obEmail: email || this.state.obEmail })
+    try {
+      const patch = await pullAll(userId)
+      if (patch) {
+        this.setState(patch as Partial<AppState> as AppState)
+      } else {
+        // First sign-in on this account: seed the cloud with the local state.
+        this.schedulePush()
+      }
+    } catch { /* offline — local cache remains; next push reconciles */ }
+  }
+
+  private schedulePush() {
+    if (!supabase || !this.userId) return
+    clearTimeout(this.pushT)
+    this.pushT = setTimeout(() => this.runPush(), 2500)
+  }
+
+  private async runPush() {
+    if (!supabase || !this.userId) return
+    if (this.pushing) { this.pushAgain = true; return }
+    this.pushing = true
+    try {
+      await pushAll(this.userId, this.state, USER_NAME)
+    } catch { /* offline — retried on next change */ }
+    this.pushing = false
+    if (this.pushAgain) { this.pushAgain = false; this.schedulePush() }
   }
 
   // ── consistency log (deterministic demo history) ───────────────
@@ -563,6 +627,17 @@ export class Store extends React.Component<{ children: ReactNode }, AppState> {
 
   // ── lifecycle ──────────────────────────────────────────────────
   componentDidMount() {
+    if (supabase) {
+      supabase.auth.getSession().then(({ data }) => {
+        const u = data.session?.user
+        if (u) this.onSignedIn(u.id, u.email)
+      })
+      const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+        const u = session?.user
+        if (u) this.onSignedIn(u.id, u.email)
+      })
+      this.authUnsub = () => sub.subscription.unsubscribe()
+    }
     if (window.matchMedia) {
       this.mq = window.matchMedia('(prefers-color-scheme: dark)')
       this.setState({ sysDark: this.mq.matches })
@@ -589,7 +664,8 @@ export class Store extends React.Component<{ children: ReactNode }, AppState> {
   componentWillUnmount() {
     clearInterval(this.ti)
     if (this.mq && this.mqFn) this.mq.removeEventListener('change', this.mqFn)
-    ;[this.tt, this.tl, this.nt, this.xst, this.hyt, this.sst, this.clt, this.nrt, this.srt, this.ret, this.rct, this.persistT].forEach(t => clearTimeout(t))
+    if (this.authUnsub) this.authUnsub()
+    ;[this.tt, this.tl, this.nt, this.xst, this.hyt, this.sst, this.clt, this.nrt, this.srt, this.ret, this.rct, this.persistT, this.pushT].forEach(t => clearTimeout(t))
     this.lts.forEach(t => clearTimeout(t))
   }
 
@@ -599,6 +675,7 @@ export class Store extends React.Component<{ children: ReactNode }, AppState> {
       for (const k of PERSIST_KEYS) out[k] = this.state[k]
       localStorage.setItem(STORAGE_KEY, JSON.stringify(out))
     } catch { /* storage full/unavailable — app still works in-memory */ }
+    this.schedulePush()
   }
 
   render() {

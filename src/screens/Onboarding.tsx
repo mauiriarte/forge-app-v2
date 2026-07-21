@@ -45,7 +45,13 @@ export function Onboarding() {
           <input className="fg-input" value={s.obEmail} onChange={(e) => store.setState({ obEmail: e.target.value })} type="email" inputMode="email" placeholder="you@email.com" style={{ marginTop: 8, ...bigInput }} />
           <div style={{ marginTop: 16, ...label }}>PASSWORD</div>
           <input className="fg-input" value={s.obPass} onChange={(e) => store.setState({ obPass: e.target.value })} type="password" placeholder="6+ characters" style={{ marginTop: 8, ...bigInput }} />
-          <div className="pr97" onClick={() => { if (!ob0ok) { store.toast('Enter an email and a 6+ character password'); return } store.setState({ obStep: 1 }) }} style={{ marginTop: 28, height: 54, borderRadius: 17, background: 'var(--color-accent)', opacity: ob0ok ? 1 : 0.45, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15.5, fontWeight: 600, color: 'var(--color-accent-on)', transition: 'all 0.2s' }}>Continue</div>
+          <div className="pr97" onClick={async () => {
+            if (!ob0ok) { store.toast('Enter an email and a 6+ character password'); return }
+            const res = await store.sbSignUp(s.obEmail, s.obPass)
+            if (res === 'session') { store.setState({ obStep: 1 }); return }
+            if (res === 'confirm') { store.toast('Confirmation email sent — check your inbox'); store.setState({ obStep: 1 }); return }
+            store.toast(res)
+          }} style={{ marginTop: 28, height: 54, borderRadius: 17, background: 'var(--color-accent)', opacity: ob0ok ? 1 : 0.45, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15.5, fontWeight: 600, color: 'var(--color-accent-on)', transition: 'all 0.2s' }}>Continue</div>
           <div style={{ marginTop: 16, textAlign: 'center', fontSize: 12.5, color: tint(45) }}>
             Already training with us? <span onClick={() => store.setState({ obMode: 'login' })} style={{ cursor: 'pointer', color: 'var(--color-accent-hi)', fontWeight: 600 }}>Log in</span>
           </div>
@@ -62,9 +68,19 @@ export function Onboarding() {
           <div style={{ marginTop: 16, ...label }}>PASSWORD</div>
           <input className="fg-input" value={s.obPass} onChange={(e) => store.setState({ obPass: e.target.value })} type="password" placeholder="Your password" style={{ marginTop: 8, ...bigInput }} />
           <div style={{ marginTop: 12, textAlign: 'right', fontSize: 12, color: tint(45) }}>
-            <span style={{ cursor: 'pointer' }} onClick={() => { if (!EMAIL_RE.test(s.obEmail)) { store.toast('Enter your email first'); return } store.toast('Reset link sent — check your inbox') }}>Forgot password?</span>
+            <span style={{ cursor: 'pointer' }} onClick={async () => {
+              if (!EMAIL_RE.test(s.obEmail)) { store.toast('Enter your email first'); return }
+              const res = await store.sbForgot(s.obEmail)
+              store.toast(res === true ? 'Reset link sent — check your inbox' : res)
+            }}>Forgot password?</span>
           </div>
-          <div className="pr97" onClick={() => { if (!ob0ok) { store.toast('Enter your email and password'); return } store.setState({ obDone: true, obLoggedOut: false }); store.toast('Welcome back, ' + firstName) }} style={{ marginTop: 22, height: 54, borderRadius: 17, background: 'var(--color-accent)', opacity: ob0ok ? 1 : 0.45, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15.5, fontWeight: 600, color: 'var(--color-accent-on)', transition: 'all 0.2s' }}>Log in</div>
+          <div className="pr97" onClick={async () => {
+            if (!ob0ok) { store.toast('Enter your email and password'); return }
+            const res = await store.sbLogin(s.obEmail, s.obPass)
+            if (res !== true) { store.toast(res); return }
+            store.setState({ obDone: true, obLoggedOut: false })
+            store.toast('Welcome back, ' + firstName)
+          }} style={{ marginTop: 22, height: 54, borderRadius: 17, background: 'var(--color-accent)', opacity: ob0ok ? 1 : 0.45, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15.5, fontWeight: 600, color: 'var(--color-accent-on)', transition: 'all 0.2s' }}>Log in</div>
           <div style={{ marginTop: 16, textAlign: 'center', fontSize: 12.5, color: tint(45) }}>
             New here? <span onClick={() => store.setState({ obMode: 'signup', obStep: 0 })} style={{ cursor: 'pointer', color: 'var(--color-accent-hi)', fontWeight: 600 }}>Create an account</span>
           </div>
