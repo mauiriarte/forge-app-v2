@@ -1,0 +1,87 @@
+/* ══════════════════════════════════════════════════════════════
+   FORGE · COLOR TOKENS
+   Dark is the default theme (:root). Light via [data-theme="light"].
+   Palette: verdant (default). Alt palettes via [data-palette="…"].
+   ══════════════════════════════════════════════════════════════ */
+:root {
+  /* ── Accent (action) — verdant emerald ── */
+  --color-accent:        #1F8A5B;
+  --color-accent-hi:     #3FBD85;  /* bright variant: text-on-dark, active deltas */
+  --color-accent-deep:   #14603F;  /* pressed / dense fills */
+  --color-accent-on:     #F0FBF5;  /* text/icons on accent */
+  --color-accent-tint:   #BFEAD6;  /* halos, soft fills on paper */
+
+  /* ── Cool (water / info) — cerulean ── */
+  --color-cool:          #2E86C1;
+  --color-cool-lt:       #7FC2E8;
+  --color-cool-deep:     #1F5F8C;
+  --color-cool-on:       #F0F8FD;
+  --color-cool-tint:     #C5E5F6;
+
+  /* ── Semantic ── */
+  --color-success:       #1F8A5B;  /* = accent, on purpose */
+  --color-success-hi:    #3FBD85;
+  --color-warning:       #B96F15;  /* from bronze palette */
+  --color-warning-hi:    #E29A38;
+  --color-error:         #D93A2B;  /* from oxide palette */
+  --color-error-hi:      #FF7261;
+
+  /* ── Neutrals · DARK (default) ── */
+  --color-bg:            #15161A;  /* app background */
+  --color-surface:       #1E2026;  /* cards, sheets, nav rows */
+  --color-surface-2:     #26282F;  /* nested tiles, avatars */
+  --color-surface-3:     #22242B;  /* stepper / alt tiles */
+  --color-press:         #17181C;  /* pressed surface */
+  --color-text-primary:  #FAFAF4;
+  --color-text-secondary: rgba(255,255,255,0.55);
+  --color-text-tertiary: rgba(255,255,255,0.42);
+  --color-border:        rgba(255,255,255,0.08);
+  --color-border-strong: rgba(255,255,255,0.14);
+  --color-paper:         #FAFAF4;  /* inverted "paper" card */
+  --color-paper-on:      #17181C;
+  --color-paper-deep:    #E7E7DC;
+  --color-nav:           rgba(24,26,31,0.94); /* floating tab bar */
+  --color-dim:           #3A3D46;  /* inactive chart dots */
+  --color-scrim:         rgba(10,11,14,0.62);
+  /* overlay base: mix this at N% for borders/dividers/tracks */
+  --color-fg-overlay:    #FFFFFF;
+}
+
+[data-theme="light"] {
+  --color-bg:            #F1EFE8;
+  --color-surface:       #FFFFFF;
+  --color-surface-2:     #E9E6DC;
+  --color-surface-3:     #FFFFFF;
+  --color-press:         #EEECE2;
+  --color-text-primary:  #17181C;
+  --color-text-secondary: rgba(23,24,28,0.55);
+  --color-text-tertiary: rgba(23,24,28,0.42);
+  --color-border:        rgba(23,24,28,0.08);
+  --color-border-strong: rgba(23,24,28,0.14);
+  --color-paper:         #17181C;
+  --color-paper-on:      #FAFAF4;
+  --color-paper-deep:    #2F323B;
+  --color-nav:           rgba(250,249,243,0.94);
+  --color-dim:           #C8C5B9;
+  --color-fg-overlay:    #17181C;
+}
+
+/* ── Alternate palettes (accent pair swaps; explored turns 1–4) ── */
+[data-palette="ember"] {
+  --color-accent: #F04A21; --color-accent-hi: #FF7A54; --color-accent-deep: #B23310;
+  --color-accent-on: #FFF7F2; --color-accent-tint: #FFDACC;
+  --color-cool: #2E4BE8; --color-cool-lt: #7B8FFF; --color-cool-deep: #2036AC;
+  --color-cool-on: #F2F4FF; --color-cool-tint: #C9D2FF;
+}
+[data-palette="oxide"] {
+  --color-accent: #D93A2B; --color-accent-hi: #FF7261; --color-accent-deep: #9E2418;
+  --color-accent-on: #FFF5F2; --color-accent-tint: #FFCFC5;
+  --color-cool: #1D8F87; --color-cool-lt: #6FCEC6; --color-cool-deep: #135F5A;
+  --color-cool-on: #EFFAF8; --color-cool-tint: #BFEBE6;
+}
+[data-palette="bronze"] {
+  --color-accent: #B96F15; --color-accent-hi: #E29A38; --color-accent-deep: #83500E;
+  --color-accent-on: #FFF8EC; --color-accent-tint: #F2D9A8;
+  --color-cool: #26697D; --color-cool-lt: #7FBFD1; --color-cool-deep: #194955;
+  --color-cool-on: #F0F9FB; --color-cool-tint: #C3E4ED;
+}

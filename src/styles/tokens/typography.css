@@ -1,0 +1,34 @@
+/* ══════════════════════════════════════════════════════════════
+   FORGE · TYPOGRAPHY TOKENS
+   One family everywhere: Open Sauce One. Space Grotesk is the
+   documented alternative display face (font="space-grotesk").
+   Numbers & headings: 700 + negative tracking. Labels: 700 +
+   wide tracking, uppercase.
+   ══════════════════════════════════════════════════════════════ */
+:root {
+  --font-display: 'Open Sauce One', 'Space Grotesk', sans-serif;
+  --font-body:    'Open Sauce One', -apple-system, sans-serif;
+
+  /* role: hero metric / big number */
+  --font-size-title-xl: 34px; --font-weight-title-xl: 700; --tracking-title-xl: -1.2px; --leading-title-xl: 1.1;
+  /* role: screen title ("Train", "Statistics") */
+  --font-size-title: 30px;    --font-weight-title: 700;    --tracking-title: -1px;     --leading-title: 1.1;
+  /* role: sheet/dialog heading */
+  --font-size-heading: 19px;  --font-weight-heading: 700;  --tracking-heading: -0.4px; --leading-heading: 1.2;
+  /* role: subtitle / option caption */
+  --font-size-subtitle: 17px; --font-weight-subtitle: 700; --tracking-subtitle: -0.3px; --leading-subtitle: 1.25;
+  /* role: card title */
+  --font-size-card-title: 15px; --font-weight-card-title: 700; --leading-card-title: 1.3;
+  /* role: emphasized value inside tiles */
+  --font-size-value: 21px;    --font-weight-value: 700;    --tracking-value: -0.5px;   --leading-value: 1.1;
+  /* role: body */
+  --font-size-body: 14px;     --font-weight-body: 500;     --leading-body: 1.45;
+  /* role: secondary body / captions */
+  --font-size-body-sm: 12.5px; --font-weight-body-sm: 400; --leading-body-sm: 1.5;
+  /* role: button */
+  --font-size-button: 15px;   --font-weight-button: 600;   --leading-button: 1;
+  /* role: overline label (uppercase) */
+  --font-size-label: 10px;    --font-weight-label: 700;    --tracking-label: 1.5px;    --leading-label: 1;
+  /* role: micro label (tab bar, axis; uppercase) */
+  --font-size-micro: 9px;     --font-weight-micro: 700;    --tracking-micro: 1.2px;    --leading-micro: 1;
+}

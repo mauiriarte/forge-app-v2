@@ -1,0 +1,14 @@
+/* ══════════════════════════════════════════════════════════════
+   FORGE · MOTION TOKENS
+   One spring curve everywhere. Press = scale, never color-only.
+   ══════════════════════════════════════════════════════════════ */
+:root {
+  --ease-spring: cubic-bezier(0.2, 0.8, 0.2, 1);  /* entrances, slides */
+  --ease-exit: cubic-bezier(0.4, 0, 0.7, 1);       /* sheet dismiss */
+  --duration-press: 0.15s;
+  --duration-fast: 0.2s;    /* hovers, color/border changes */
+  --duration-base: 0.3s;    /* toast, tab indicator, scrims */
+  --duration-sheet: 0.36s;  /* bottom sheet entrance */
+  --scale-press: 0.97;      /* buttons, cards */
+  --scale-press-sm: 0.95;   /* small pills */
+}

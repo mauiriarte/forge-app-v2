@@ -1,0 +1,48 @@
+/* ══════════════════════════════════════════════════════════════
+   FORGE · SPACING, RADII & ELEVATION TOKENS
+   Values are copied from the design verbatim — do not snap.
+   Flat UI: no drop shadows; "elevation" = halos + scrim + borders.
+   ══════════════════════════════════════════════════════════════ */
+:root {
+  /* spacing scale */
+  --space-1: 4px;   /* icon/text micro gaps */
+  --space-2: 8px;   /* chip gaps, grid gaps */
+  --space-3: 12px;  /* between cards in a list */
+  --space-4: 16px;  /* section gap, sheet CTA gap */
+  --space-5: 20px;  /* sheet padding */
+  --space-6: 24px;  /* section break */
+  --space-7: 32px;  /* large break */
+  /* structural insets */
+  --space-card: 18px;        /* card padding (big cards) */
+  --space-row-y: 12px; --space-row-x: 14px;  /* list-row padding */
+  --space-screen-x: 20px;    /* screen side padding */
+  --space-screen-top: 76px;  /* under status bar */
+  --space-screen-bottom: 132px; /* clears floating tab bar */
+
+  /* corner radii (verbatim per use) */
+  --radius-input: 13px;
+  --radius-tile: 16px;
+  --radius-button: 17px;
+  --radius-row: 18px;
+  --radius-card: 22px;
+  --radius-card-lg: 26px;
+  --radius-nav: 24px;
+  --radius-sheet: 28px;
+  --radius-pill: 999px;
+
+  /* halos & overlays (the only "shadows" in the system) */
+  --halo-dot: 0 0 0 4px;     /* + a 25% tint of the dot color */
+  --halo-ring: 0 0 0 1.5px;  /* + accent-tint; latest chart point */
+  --shadow-none: none;       /* flat by design */
+
+  /* component metrics */
+  --size-button: 54px;       /* primary CTA height */
+  --size-button-sm: 50px;    /* sheet CTA height */
+  --size-chip: 44px;         /* segmented control height */
+  --size-chip-sm: 42px;      /* appearance chips */
+  --size-input: 45px;        /* 11px padding + 14px text + border */
+  --size-tabbar: 66px;
+  --size-check: 40px;        /* habit check circle */
+  --size-toggle-w: 48px; --size-toggle-h: 28px;
+  --stroke-ring: 12px;       /* progress ring stroke */
+}
