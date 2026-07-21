@@ -58,10 +58,11 @@ export function ImageSlot({ id, placeholder, fallbackSrc, style }: { id: string;
       }}
     >
       {src ? (
+        {/* no loading="lazy": Chromium skips lazy-load inside these animated
+            absolutely-positioned panes, leaving the image permanently unloaded */}
         <img
           src={src}
           alt=""
-          loading="lazy"
           onError={() => { if (!dropped) setFallbackBroken(true) }}
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', background: '#FFFFFF' }}
           draggable={false}
