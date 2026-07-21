@@ -58,8 +58,8 @@ export function ImageSlot({ id, placeholder, fallbackSrc, style }: { id: string;
       }}
     >
       {src ? (
-        {/* no loading="lazy": Chromium skips lazy-load inside these animated
-            absolutely-positioned panes, leaving the image permanently unloaded */}
+        // eslint-disable-next-line -- no loading="lazy": Chromium skips lazy-load
+        // inside these animated absolutely-positioned panes (image never loads)
         <img
           src={src}
           alt=""
