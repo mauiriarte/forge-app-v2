@@ -12,6 +12,22 @@ npm run dev      # http://localhost:5178
 npm run build    # typecheck + production build to dist/
 ```
 
+## PWA / remote testing
+
+Live at **https://mauiriarte.github.io/forge-app-v2/** — open it on your phone and
+"Add to Home Screen" to install (standalone display, offline-capable via a Workbox
+service worker that precaches the whole app, including fonts).
+
+Redeploy after changes:
+
+```sh
+npm run build
+cd dist && touch .nojekyll && git init -b gh-pages && git add -A \
+  && git commit -m deploy \
+  && git push -f https://github.com/mauiriarte/forge-app-v2.git gh-pages \
+  && cd .. && rm -rf dist/.git
+```
+
 ## What's in the app
 
 - **Onboarding** — signup (email/password → body info → optional scan upload) and login,
