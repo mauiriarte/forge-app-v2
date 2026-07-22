@@ -64,7 +64,37 @@ export function Profile({ z, anim }: { z: number; anim: string }) {
         <div style={{ padding: '11px 16px', fontSize: 10.5, color: tint(38) }}>Weight and body data update from your scans in Stats.</div>
       </div>
 
-      <div className="pr98" onClick={() => store.signOut()} style={{ marginTop: 22, height: 50, border: '1px solid rgba(217,58,43,0.4)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13.5, fontWeight: 600, color: 'var(--color-error-hi)', boxSizing: 'border-box', transition: 'transform 0.15s' }}>Sign out</div>
+      {store.hasCloud() && (
+        <div>
+          <div style={{ marginTop: 22, ...overline() }}>BACKUP &amp; SYNC</div>
+          <div style={{ marginTop: 11, background: 'var(--color-surface)', border: `1px solid ${tint(8)}`, borderRadius: 18, padding: 16 }}>
+            {s.signedIn ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-accent)', flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 700 }}>Synced to the cloud</div>
+                  <div style={{ fontSize: 11.5, color: tint(45), marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Your progress is backed up as {s.obEmail || 'your account'}.</div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-warning-hi)', flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 700 }}>This device only</div>
+                    <div style={{ fontSize: 11.5, color: tint(45), marginTop: 2, lineHeight: 1.5 }}>Your data isn't backed up yet. Sign in to save it to the cloud.</div>
+                  </div>
+                </div>
+                <div className="pr97" onClick={() => store.openCloudGate()} style={{ marginTop: 13, height: 46, borderRadius: 14, background: 'var(--color-accent)', color: 'var(--color-accent-on)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13.5, fontWeight: 600, transition: 'transform 0.15s' }}>Back up my progress</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {s.signedIn && (
+        <div className="pr98" onClick={() => store.signOut()} style={{ marginTop: 22, height: 50, border: '1px solid rgba(217,58,43,0.4)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13.5, fontWeight: 600, color: 'var(--color-error-hi)', boxSizing: 'border-box', transition: 'transform 0.15s' }}>Sign out</div>
+      )}
     </div>
   )
 }

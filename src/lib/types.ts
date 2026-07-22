@@ -75,6 +75,11 @@ export interface AppState {
   todayPick: { rid: string; day: string } | null
   pwOpen: boolean
   pwClosing: boolean
+  /** Cloud sync: true once a Supabase session is active. */
+  signedIn: boolean
+  /** Prompt an already-onboarded local user to sign in so their data backs up. */
+  cloudGate: boolean
+  cloudBusy: boolean
   // active session
   sessOn: boolean
   sessRid: string | null

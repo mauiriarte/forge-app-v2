@@ -58,6 +58,7 @@ const initialState = (): AppState => ({
   routineOpen: null,
   exOpen: null, exFrom: null,
   todayPick: null, pwOpen: false, pwClosing: false,
+  signedIn: false, cloudGate: false, cloudBusy: false,
   sessOn: false, sessRid: null, sessSets: {}, sessW: {}, sessR: {}, sessElapsed: 0, sessDoneOpen: false, sessOrder: [],
   restEnd: 0, restTotal: 90, restTick: 0, lastSessMins: 0,
   // New accounts start clean: no routines (create-first-routine empty state),
@@ -711,21 +712,52 @@ export class Store extends React.Component<{ children: ReactNode }, AppState> {
   signOut() {
     if (supabase) { supabase.auth.signOut() }
     this.userId = null
-    this.setState({ obDone: false, obLoggedOut: true, obMode: 'login', obStep: 0, obPass: '' })
+    this.setState({ signedIn: false, cloudGate: false, obDone: false, obLoggedOut: true, obMode: 'login', obStep: 0, obPass: '' })
     this.go('home')
+  }
+
+  // ── cloud backup gate (already-onboarded local user, no session yet) ──
+  openCloudGate() { this.setState({ cloudGate: true, obPass: '' }) }
+  dismissCloudGate() { this.setState({ cloudGate: false }) }
+
+  /** Create a cloud account, then push existing local data up to back it up. */
+  async cloudSignUp() {
+    const s = this.state
+    if (!/\S+@\S+\.\S+/.test(s.obEmail) || s.obPass.length < 6) { this.toast('Enter an email and a 6+ character password'); return }
+    this.setState({ cloudBusy: true })
+    const res = await this.sbSignUp(s.obEmail.trim(), s.obPass)
+    this.setState({ cloudBusy: false, obPass: '' })
+    if (res === 'session') { this.setState({ cloudGate: false }); this.toast('Backing up your progress…'); return }
+    if (res === 'confirm') { this.setState({ cloudGate: false }); this.toast('Confirm via the email we sent, then log in'); return }
+    this.toast(res)
+  }
+
+  /** Log into an existing cloud account from the backup gate. */
+  async cloudLogin() {
+    const s = this.state
+    if (!/\S+@\S+\.\S+/.test(s.obEmail) || !s.obPass) { this.toast('Enter your email and password'); return }
+    this.setState({ cloudBusy: true })
+    const res = await this.sbLogin(s.obEmail.trim(), s.obPass)
+    this.setState({ cloudBusy: false, obPass: '' })
+    if (res !== true) { this.toast(res); return }
+    this.setState({ cloudGate: false })
+    this.toast('Signed in — syncing')
   }
 
   private async onSignedIn(userId: string, email: string | undefined) {
     if (this.userId === userId) return
     this.userId = userId
-    this.setState({ obDone: true, obLoggedOut: false, obEmail: email || this.state.obEmail })
+    // Snapshot local data BEFORE any pull so a fresh account can be seeded with it.
+    const hadLocal = this.state.routines.length > 0 || this.state.measurements.length > 0
+    this.setState({ signedIn: true, cloudGate: false, obDone: true, obLoggedOut: false, obEmail: email || this.state.obEmail })
     try {
       const patch = await pullAll(userId)
-      if (patch) {
+      if (patch && (patch.routines?.length || patch.measurements?.length || patch.profileName)) {
+        // Account already has cloud data → adopt it (multi-device / returning).
         this.setState(patch as Partial<AppState> as AppState)
       } else {
-        // First sign-in on this account: seed the cloud with the local state.
-        this.schedulePush()
+        // Empty cloud account → back up whatever is on this device right now.
+        if (hadLocal || patch) this.schedulePush()
       }
     } catch { /* offline — local cache remains; next push reconciles */ }
   }
@@ -763,6 +795,9 @@ export class Store extends React.Component<{ children: ReactNode }, AppState> {
       supabase.auth.getSession().then(({ data }) => {
         const u = data.session?.user
         if (u) this.onSignedIn(u.id, u.email)
+        // Already-onboarded local user with no cloud session → nudge them to
+        // sign in so their existing progress gets backed up (not auto-forced).
+        else if (this.state.obDone && !this.state.obLoggedOut) this.setState({ cloudGate: true })
       })
       const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
         const u = session?.user

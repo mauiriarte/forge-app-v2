@@ -13,6 +13,7 @@ import { ExerciseDetail } from './screens/ExerciseDetail'
 import { Stats } from './screens/Stats'
 import { Profile } from './screens/Profile'
 import { Onboarding } from './screens/Onboarding'
+import { CloudGate } from './screens/CloudGate'
 import { SetsRepsSheet } from './sheets/SetsRepsSheet'
 import { EditRoutineSheet } from './sheets/EditRoutineSheet'
 import { HydrationSheet } from './sheets/HydrationSheet'
@@ -136,6 +137,7 @@ export function App() {
       {s.nrOpen && <NewRoutineSheet />}
 
       {obOn && <Onboarding />}
+      {!obOn && s.cloudGate && <CloudGate />}
 
       <Toast />
     </div>
